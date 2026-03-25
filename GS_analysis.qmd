@@ -1,0 +1,720 @@
+---
+title: "Air Pollution GS analysis"
+author: "ZR"
+format: 
+  html:
+    toc: true
+    toc-depth: 5
+    embed-resources: false
+    grid:
+      sidebar-width: 300px
+      body-width: 1500px
+      margin-width: 300px
+      gutter-width: 1.5rem
+editor:
+  mode: source
+execute:
+  echo: false
+  warning: false
+---
+
+These are the final figures for the air pollution analysis
+
+Setting up
+
+Workspace:
+
+```{r}
+# Setting up the workspace 
+if(Sys.getenv("RSTUDIO") == '1' & !knitr::is_html_output()) { # If using Rstudio and not rendering
+  setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+} else if(Sys.getenv("RSTUDIO") != '1'){ # If using Rscript
+  initial.options <- commandArgs(trailingOnly = FALSE)
+  file.arg.name <- "--file="
+  script.name <- sub(file.arg.name, "", initial.options[grep(file.arg.name, initial.options)])
+  script.basename <- dirname(script.name)
+  setwd(file.path(getwd(), script.basename))
+}
+```
+
+Packages:
+
+```{r}
+library(dplyr)
+library(rmarkdown)
+library(tinytex)
+library(tidyverse)
+library(haven)
+library(purrr)
+library(survival)
+library(htmltools)
+library(latticeExtra)
+library(sqldf)
+library(labelled)
+library(survminer)
+library(stringr)
+library(aod)
+library(clubSandwich)
+library(Hmisc)
+library(knitr)
+library(muhaz)
+library(ggplot2)
+library(rlang)
+library(gt)
+library(gtsummary)
+library(broom)
+library(webshot2)
+library(patchwork)
+library(zoo)
+library(lubridate)
+library(slider)
+
+```
+
+Functions:
+
+```{r}
+# Bring in the functions
+source("GS_analysis/Script/Function_LoadRDSData.R")
+source("GS_analysis/Script/Function_DataManagement.R")
+source("GS_analysis/Script/Function_Covariate.R")
+source("GS_analysis/Script/Function_InteractionMenopause.R")
+source("GS_analysis/Script/Function_FinalFigures.R")
+source("GS_analysis/Script/Function_extractcox.R")
+```
+
+Data
+
+```{r}
+
+data_airpollution <- read_csv("R:/Shared/GENERATIONS/GeoLinkages/GS_Expanse_ForAnalysis.csv")
+data_realyears <- read_csv("R:/Shared/GENERATIONS/Event_Years/RDSTrueYear.csv")
+data_carstairs <- read_csv("R:/Shared/GENERATIONS/GeoLinkages/For_Air_Pollution_Analysis/GS_carstairs2001.csv")
+```
+
+Building the cohort and cleaning the covariates
+
+```{r}
+# Decide cancer of interest:
+# This analysis is focused on breast cancer 
+select_cancer <- "breast_cancer"
+
+# set if cancer is first ever any cancer (YES) - no previous cancers of any type (except NMSC)
+# or first of its type (NO) -there may be previous diagnosis of other cancer (except NMSC)
+first_ever <- "YES"
+
+source("GS_analysis/Script/Cohort_Build.R")
+
+
+# COHORT DEFINITION
+# Menopausal Status
+  # "post" - POSTMENOPAUSAL cohort
+  # "pre" - PREMENOPAUSAL cohort
+  # "all" - ENTIRE cohort
+menopausal_status <- "all"
+
+# EVENT DEFINITION
+# ER status 
+  # "positive" - positive er status BC coded as events only
+  # "negative" - negative er status BC coded as events only
+  # "all"- all BC coded as events
+er_event <- "all"
+# Menopausal Status
+  # "post" - postmenopausal BC coded as events only
+  # "pre" - premenopausal BC coded as events only
+  # "all" - all BC coded as events
+menopausal_event <- "all"
+
+source("GS_analysis/Script/CleanCovariates_NAincluded.R")
+source("GS_analysis/Script/CleanExposure.R")
+
+complete_cohort <- complete_cohort %>%
+  filter(
+    !is.na(BMI)
+  ) # Do not include those who have missing BMI
+```
+
+# Analysis set up
+
+Time lag definitions
+
+```{r}
+complete_cohort <- complete_cohort %>%
+  mutate(
+    meno_age_est = as.numeric(meno_age_est)
+  )
+
+complete_cohort_2lag <- complete_cohort %>%
+  mutate(
+    age_start365 = age_start365 + 730
+  ) %>%
+  filter(
+    c_age365 > age_start365
+  )
+
+complete_cohort_5lag <- complete_cohort %>%
+  mutate(
+    age_start365 = age_start365 + 1825
+  ) %>%
+  filter(
+    c_age365 > age_start365
+  )
+
+```
+
+```{r}
+source("GS_analysis/Script/TimeSplit_Menopause_2lag.R")
+source("GS_analysis/Script/TimeSplit_Menopause_5lag.R")
+source("GS_analysis/Script/TimeSplit_Menopause.R")
+```
+
+
+## Full Cohort
+
+```{r}
+source("GS_analysis/Script/Point_Avg_CoxRegression.R")
+
+# No Time lagS
+#need air pollutant, time point, and time lag
+all_results <- rbind(
+  point_nolag_clean,
+  point_2lag_clean,
+  point_5lag_clean,
+  avg_nolag_clean,
+  avg_2lag_clean,
+  avg_5lag_clean
+)
+```
+
+
+## By Menopausal status
+
+```{r}
+cohort_mensplit_5lag_changed <- cohort_mensplit_5lag %>%
+  mutate(
+    avgNO2 = avgNO2/10, 
+    avgP25 = avgP25/5,
+    avgP10 = avgP10/5,
+    pointNO2 = pointNO2/10, 
+    pointP25 = pointP25/5,
+    pointP10 = pointP10/5
+  )
+
+cohort_mensplit_2lag_changed <- cohort_mensplit_2lag %>%
+  mutate(
+    avgNO2 = avgNO2/10, 
+    avgP25 = avgP25/5,
+    avgP10 = avgP10/5,
+    pointNO2 = pointNO2/10, 
+    pointP25 = pointP25/5,
+    pointP10 = pointP10/5
+  )
+
+cohort_mensplit_nolag_changed <- cohort_mensplit %>%
+  mutate(
+    avgNO2 = avgNO2/10, 
+    avgP25 = avgP25/5,
+    avgP10 = avgP10/5,
+    pointNO2 = pointNO2/10, 
+    pointP25 = pointP25/5,
+    pointP10 = pointP10/5
+  )
+source("GS_analysis/Script/Menopause_applied_avg_5lag.R")
+source("GS_analysis/Script/Menopause_applied_avg_2lag.R")
+source("GS_analysis/Script/Menopause_applied_avg_nolag.R")
+
+source("GS_analysis/Script/Menopause_applied_5lag.R")
+source("GS_analysis/Script/Menopause_applied_2lag.R")
+source("GS_analysis/Script/Menopause_applied_nolag.R")
+
+all_menopause <- rbind(point_5lag, point_2lag, point_nolag,avg_5lag, avg_2lag, avg_nolag)
+```
+
+## By ER Status
+
+Using Lunn McNeil methods
+
+```{r}
+source("GS_analysis/Script/LunnMcNeil.R")
+source("GS_analysis/Script/LunnMcNeil_applied.R")
+```
+
+
+# Table 1: Data Description
+
+```{r}
+
+nolag <- covariate(complete_cohort, bc_nolag)
+twolag <- covariate(complete_cohort, bc_2lag)
+fivelag <- covariate(complete_cohort, bc_5lag)
+
+outcome <- bind_rows(nolag, twolag, fivelag) %>%
+  mutate(
+    Cases = case_when(
+      Subcategories == 0 ~ 0, 
+      TRUE ~ Cases
+    ),
+    `Rate per 1,000` = case_when(
+      Subcategories == 0 ~ 0, 
+      TRUE ~ `Rate per 1,000`
+    ), 
+    Subcategories = case_when(
+      Subcategories == 1 ~ "Case", 
+      Subcategories == 0 ~ "Not Case", 
+      TRUE ~ "ERROR"
+    )
+  )
+
+age <- covariate(complete_cohort, AgeEntry_cat)
+yearofentry <- covariate(complete_cohort, matchyear_cat)
+
+carstairs <- covariate(complete_cohort, Carstairs_cat)
+bmi <- covariate(complete_cohort, BMI_cat)
+smoking <- covariate(complete_cohort, Smoking_cat)
+alcohol <- covariate(complete_cohort, Alcohol_cat)
+education <- covariate(complete_cohort, Educ_cat)
+
+parity <- covariate(complete_cohort, Parity_cat)
+agefirstbirth <- covariate(complete_cohort, Birth1_age_cat)
+HRT <- covariate(complete_cohort, HRT_cat)
+meno <- covariate(cohort_mensplit, menobandf)
+
+table1 <- bind_rows(outcome, age, yearofentry, carstairs, bmi, smoking, alcohol, education, parity, agefirstbirth, HRT, meno)
+
+table1_tbl <- table1 %>%
+    group_by(covariate) %>%
+    gt(rowname_col = NULL) %>%
+    # Center everything
+    cols_align(
+      align = "center",
+      columns = everything()
+    ) %>%
+    # Bold the column headers
+    tab_style(
+      style = cell_text(weight = "bold"),
+      locations = cells_column_labels()
+    ) %>%
+    # Style the group headers (time_lag)
+    tab_style(
+      style = list(
+        cell_text(weight = "bold"),
+        cell_fill(color = "lightgray"),
+        cell_borders(sides = "top"),
+        cell_borders(sides = "bottom")
+      ),
+      locations = cells_row_groups(groups = everything())
+    ) %>%
+    # Add title
+    tab_header(
+      title = "Table 1: Data Description")
+    
+
+table1_tbl
+
+```
+
+Cohort Specifications
+
+```{r}
+
+# set the covariates per model 
+covarA <- c("matchyear_cat")
+covarB <- c("matchyear_cat", "BMI","Carstairs_cat","Smoking_cat","Alcohol_cat", "Educ_cat")
+covarC <- c("matchyear_cat","BMI", "Carstairs_cat","Smoking_cat","Alcohol_cat", "Educ_cat", "Parity_cat", "Birth1_age_cat", "HRT_cat", "menobandf")
+```
+
+# Table 2: Bias Assessment
+
+## Proportional Hazards
+
+This is for no time lag and point exposures
+
+```{r}
+source("GS_analysis/Script/ProportionalHazards.R")
+
+ph_summary_clean
+
+```
+
+## ANOVA with exposure
+
+ANova test with confounders and exposure
+
+p-value \< 0.05 = air pollution exposure differs across at least on level of the categorical variable
+
+eta squared = effect size, proportion of exposure explained by the categorical variable
+
+pvalue will almost always be significant because large sample size, should focus on eta squared
+
+```{r}
+source("GS_analysis/Script/CounfounderStrength.R")
+
+all_anova
+```
+
+## E-values
+
+E - values
+
+```{r}
+source("GS_analysis/Script/BiasAssessment.R")
+
+all_evalues
+```
+
+# Figure 2: Primary Outcome
+
+```{r}
+average_nolag_plot <- full_cohort_plot(all_results, lag_value = "nolag", exp_def = "average")
+
+average_nolag_plot
+```
+
+# Figure 3 : By Menopausal Status
+
+```{r}
+menopause_NO2_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "NO2",
+                      lag_choice = "no years",
+                      exp_def_choice = "average")
+
+menopause_P25_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "P25",
+                      lag_choice = "no years",
+                      exp_def_choice = "average")
+
+menopause_P10_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "P10",
+                      lag_choice = "no years",
+                      exp_def_choice = "average")
+
+menopause_NO2_plot
+menopause_P25_plot
+menopause_P10_plot
+
+```
+
+
+# Figure 4: By ER Status
+
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "NO2",
+                lag_choice = "no lag",
+                exp_def_choice = "average")
+erstatus
+```
+
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM2.5",
+                lag_choice = "no lag",
+                exp_def_choice = "average")
+erstatus
+```
+
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM10",
+                lag_choice = "no lag",
+                exp_def_choice = "average")
+erstatus
+```
+
+# Supplementary Figure 1 : Sensitivity Full Cohort
+
+
+```{r}
+point_nolag_plot <- full_cohort_plot(all_results, lag_value = "nolag", exp_def = "point")
+
+point_nolag_plot
+```
+
+```{r}
+average_2lag_plot <- full_cohort_plot(all_results, lag_value = "2lag", exp_def = "average")
+
+average_2lag_plot
+```
+
+```{r}
+average_5lag_plot <- full_cohort_plot(all_results, lag_value = "5lag", exp_def = "average")
+
+average_5lag_plot
+```
+
+
+# Supplementary Figure 2 : Sensitivity Menopausal
+
+## Point
+
+```{r}
+
+menopause_NO2_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "NO2",
+                      lag_choice = "no years",
+                      exp_def_choice = "point")
+
+menopause_P25_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "P25",
+                      lag_choice = "no years",
+                      exp_def_choice = "point")
+
+menopause_P10_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "P10",
+                      lag_choice = "no years",
+                      exp_def_choice = "point")
+
+menopause_NO2_plot
+menopause_P25_plot
+menopause_P10_plot
+```
+
+
+## 2 year lag
+
+```{r}
+menopause_NO2_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "NO2",
+                      lag_choice = "2 years",
+                      exp_def_choice = "average")
+
+menopause_P25_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "P25",
+                      lag_choice = "2 years",
+                      exp_def_choice = "average")
+
+menopause_P10_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "P10",
+                      lag_choice = "2 years",
+                      exp_def_choice = "average")
+
+menopause_NO2_plot
+menopause_P25_plot
+menopause_P10_plot
+```
+
+## 5 year lag
+
+```{r}
+
+menopause_NO2_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "NO2",
+                      lag_choice = "5 years",
+                      exp_def_choice = "average")
+
+menopause_P25_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "P25",
+                      lag_choice = "5 years",
+                      exp_def_choice = "average")
+
+menopause_P10_plot <- menopause_plot(all_menopause,
+                      pollutant_choice = "P10",
+                      lag_choice = "5 years",
+                      exp_def_choice = "average")
+
+menopause_NO2_plot
+menopause_P25_plot
+menopause_P10_plot
+```
+
+
+# Supplementary Figure 3 : Sensitivity ER Status
+
+## point
+
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "NO2",
+                lag_choice = "no lag",
+                exp_def_choice = "point")
+erstatus
+```
+
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM2.5",
+                lag_choice = "no lag",
+                exp_def_choice = "point")
+erstatus
+```
+
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM10",
+                lag_choice = "no lag",
+                exp_def_choice = "point")
+erstatus
+```
+
+## 2 year Lag
+
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "NO2",
+                lag_choice = "2yr lag",
+                exp_def_choice = "average")
+erstatus
+```
+
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM2.5",
+                lag_choice = "2yr lag",
+                exp_def_choice = "average")
+erstatus
+```
+
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM10",
+                lag_choice = "2yr lag",
+                exp_def_choice = "average")
+erstatus
+```
+
+## 5 year Lag
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "NO2",
+                lag_choice = "5yr lag",
+                exp_def_choice = "average")
+erstatus
+```
+
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM2.5",
+                lag_choice = "5yr lag",
+                exp_def_choice = "average")
+erstatus
+```
+
+```{r}
+erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM10",
+                lag_choice = "5yr lag",
+                exp_def_choice = "average")
+erstatus
+```
+
+# Supplementary Table 2: Primary Analysis
+
+```{r}
+average_table <- full_cohort_table(all_results, 
+                   lag_value = "nolag", 
+                   exp_def = "average")
+
+average_table
+```
+
+# Supplementary Table 3: Menopausal Status Tables
+
+```{r}
+menopausal_table <- menopause_table(all_menopause,
+                lag_choice = "no years",
+                exp_choice = "average")
+
+menopausal_table
+```
+
+# Supplementary Table 4: ER Status Table
+
+```{r}
+erstatus_all_table <- erstatus_table(lunnmcneil_results,
+                 lag_choice = "no lag",
+                 exp_def_choice = "average")
+
+erstatus_all_table
+```
+
+# Supplementary Table 5: Sensitivity Main Estimate
+
+## point
+
+```{r}
+point_table <- full_cohort_table(all_results, 
+                   lag_value = "nolag", 
+                   exp_def = "point")
+
+point_table
+```
+
+## 2 year lag
+
+```{r}
+average_2lag_table <- full_cohort_table(all_results, 
+                   lag_value = "2lag", 
+                   exp_def = "average")
+
+average_2lag_table
+```
+
+## 5 year lag
+
+```{r}
+average_5lag_table <- full_cohort_table(all_results, 
+                   lag_value = "5lag", 
+                   exp_def = "average")
+
+average_5lag_table
+```
+
+# Supplemeentary Table 6: Sensitivity Menopause
+
+## point
+```{r}
+menopausal_table <- menopause_table(all_menopause,
+                lag_choice = "no years",
+                exp_choice = "point")
+
+menopausal_table
+```
+
+## 2 year lag
+
+```{r}
+menopausal_table <- menopause_table(all_menopause,
+                lag_choice = "2 years",
+                exp_choice = "average")
+
+menopausal_table
+```
+
+
+## 5 year lag
+```{r}
+menopausal_table <- menopause_table(all_menopause,
+                lag_choice = "5 years",
+                exp_choice = "average")
+
+menopausal_table
+```
+# Supplementary Table 7: Sensitivity ER
+
+## point
+
+```{r}
+erstatus_point_table <- erstatus_table(lunnmcneil_results,
+                 lag_choice = "no lag",
+                 exp_def_choice = "point")
+
+erstatus_point_table
+```
+## 2 year Lag
+
+```{r}
+erstatus_2yr_table <- erstatus_table(lunnmcneil_results,
+                 lag_choice = "2yr lag",
+                 exp_def_choice = "average")
+
+erstatus_2yr_table
+```
+## 5 year Lag
+
+```{r}
+erstatus_5yr_table <- erstatus_table(lunnmcneil_results,
+                 lag_choice = "5yr lag",
+                 exp_def_choice = "average")
+
+erstatus_5yr_table
+```
