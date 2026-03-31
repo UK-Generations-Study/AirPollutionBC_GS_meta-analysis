@@ -55,30 +55,7 @@ P10_confounder_results <- P10association_results %>%
   )
 
 
-# NO2
-NO2association_results <- map_dfr(cat_vars, function(var) {
-  formula <- as.formula(paste("avgNO2 ~", var))
-  fit <- aov(formula, data = complete_cohort)
-  
-  # Effect size
-  eta <- eta_squared(fit)
-  
-  data.frame(
-    variable = var,
-    eta_squared = eta$Eta2,
-    p_value = summary(fit)[[1]][["Pr(>F)"]][1]  # ANOVA p-value
-  )
-})
 
-NO2_confounder_results <- NO2association_results %>%
-  mutate(
-    NO2_eta_squared = round(eta_squared, 4), 
-   # NO2_p_value = round(p_value, 5)
-  )%>%
-  select(
-    -eta_squared, -p_value
-  )
 
 all_anova <- P25_confounder_results %>%
-  left_join(P10_confounder_results, by = "variable") %>%
-  left_join(NO2_confounder_results, by = "variable") 
+  left_join(P10_confounder_results, by = "variable") 

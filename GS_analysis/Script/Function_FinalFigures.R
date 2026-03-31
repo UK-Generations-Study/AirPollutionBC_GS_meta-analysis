@@ -183,8 +183,7 @@ menopause_plot <- function(data,
       x = "Hazard Ratio (HR)",
       y = "Model - Pollutant",
       color = "Menopausal Status",
-      title = paste(exp_def_choice, pollutant_choice,
-                    "by menopausal status (", units_choice, ",", lag_choice, ")")
+      title = if (pollutant_choice == "P25") "PM 2.5" else "PM 10"
     ) +
     theme(
       axis.title.x = element_text(size = 15),
@@ -197,72 +196,6 @@ menopause_plot <- function(data,
     )
   
   return(p)
-}
-
-
-menopause_table <- function(data, lag_choice, exp_choice, pollutant_choice = NULL) {
-  
-  # Filter dataset
-  tbl_data <- data %>%
-    filter(
-      lag == lag_choice,
-      exposure == exp_choice,
-      if(!is.null(pollutant_choice)) pollutant == pollutant_choice else TRUE
-    ) %>%
-    mutate(
-      # Format HR (95% CI) strings
-      `HR (95% CI) Pre` = paste0(round(HR_pre, 2), 
-                                 " (", round(CI_lower_pre, 2), 
-                                 ", ", round(CI_upper_pre, 2), ")"),
-      `HR (95% CI) Post` = paste0(round(HR_post, 2), 
-                                  " (", round(CI_lower_post, 2), 
-                                  ", ", round(CI_upper_post, 2), ")"),
-      `Wald p-value` = round(wald_pval, 3)
-    ) %>%
-    select(
-      Model,
-      Pollutant = pollutant,
-      Lag = lag,
-      Exposure = exposure,
-      Units = units,
-      `HR (95% CI) Pre`,
-      pvalue_pre,
-      `HR (95% CI) Post`,
-      pvalue_post,
-      `Wald p-value`
-    ) %>%
-    arrange(Pollutant, Model)
-  
-  # Create gt table
-  gt_table <- tbl_data %>%
-    gt(groupname_col = "Model") %>%
-    tab_header(
-      title = md("**Menopause Analysis**"),
-      subtitle = paste0("HR with 95%CI and interaction p-values (Wald) - Lag: ", lag_choice,
-                        ", Exposure: ", exp_choice)
-    ) %>%
-    cols_label(
-      Model = "Model",
-      Pollutant = "Pollutant",
-      Lag = "Lag time",
-      Exposure = "Exposure Type",
-      Units = "Units",
-      `HR (95% CI) Pre` = "Premenopausal HR (95% CI)",
-      pvalue_pre = "Premen. p-value",
-      `HR (95% CI) Post` = "Postmenopausal HR (95% CI)",
-      pvalue_post = "Postmen. p-value",
-      `Wald p-value` = "Wald p-value"
-    ) %>%
-    fmt_missing(
-      columns = everything(),
-      missing_text = "—"
-    ) %>%
-    tab_options(
-      table.font.size = "small",
-      column_labels.font.weight = "bold"
-    )
-  
-  return(gt_table)
 }
 
 
@@ -290,8 +223,8 @@ erstatus_plot <- function(data, pollutant_choice, lag_choice, exp_def_choice) {
       ), 
       Exposure = case_when(
         grepl("NO2", Model) ~ "NO2", 
-        grepl("P25", Model) ~ "PM2.5",
-        grepl("P10", Model) ~ "PM10",
+        grepl("P25", Model) ~ "PM 2.5",
+        grepl("P10", Model) ~ "PM 10",
         TRUE ~ "ERROR"
       ), 
       ExpUnits = case_when(
@@ -352,7 +285,7 @@ erstatus_plot <- function(data, pollutant_choice, lag_choice, exp_def_choice) {
     geom_vline(xintercept = 1, linetype = "dashed", color = "gray50") +
     facet_wrap(~ ExpLength, ncol = 1, scales = "free_y", drop = FALSE) +
     labs(
-      title = paste("Average Exposure by ER Status:", pollutant_choice, "-", lag_choice),
+      title = pollutant_choice,
       y = "Model",
       x = "Hazard Ratio (HR)",
       color = "Event"
@@ -377,97 +310,208 @@ erstatus_plot <- function(data, pollutant_choice, lag_choice, exp_def_choice) {
   return(p)
 }
 
-# The table
-erstatus_table <- function(data, lag_choice, exp_def_choice) {
-  
-  # Clean and parse columns
-  data_clean <- data %>%
-    mutate(
-      Models = case_when(
-        grepl("A_", Model) ~ "A", 
-        grepl("B_", Model) ~ "B",
-        grepl("C_", Model) ~ "C",
-        TRUE ~ "ERROR"
-      ), 
-      Outcome = case_when(
-        grepl("nolag", Model) ~ "no lag", 
-        grepl("2lag", Model) ~ "2yr lag",
-        grepl("5lag", Model) ~ "5yr lag",
-        TRUE ~ "ERROR"
-      ), 
-      Exposure = case_when(
-        grepl("NO2", Model) ~ "NO2", 
-        grepl("P25", Model) ~ "PM2.5",
-        grepl("P10", Model) ~ "PM10",
-        TRUE ~ "ERROR"
-      ), 
-      ExpUnits = case_when(
-        grepl("_10_", Model) ~ "per 10", 
-        grepl("_5_", Model) ~ "per 5",
-        TRUE ~ "ERROR"
-      ), 
-      ExpLength = case_when(
-        grepl("avg", Model) ~ "average", 
-        grepl("point", Model) ~ "point",
-        TRUE ~ "ERROR"
-      ), 
-      Event = case_when(
-        Subtype == "pos" ~ "Positive", 
-        Subtype == "neg" ~ "Negative",
-        Subtype == "unk" ~ "Unknown",
-        TRUE ~ "ERROR"
-      ), 
-      Wald = Wald_pval,
-      Model = Models
-    ) %>%
-    select(-Models, -Subtype)
-  
-  # Format HR (95% CI) + p-value
-  results_formatted <- data_clean %>%
-    mutate(
-      HR_CI_p = paste0(
-        sprintf("%.2f", HR),
-        " (", sprintf("%.2f", CI_lower), "–", sprintf("%.2f", CI_upper), "), p=",
-        formatC(Pval, format = "f", digits = 3)
+#################################
+# Subtype Table
+
+subanalysis_table <- function(data, type = "Menopausal Status",lag_choice = "no years",exp_choice = "average") {
+  if(type == "ER Status"){
+    data_clean <- data %>%
+      mutate(
+        pval = Pval, 
+        wald_pval = Wald_pval
+      )%>%
+      select(
+        -Pval, - Wald_pval
+      ) %>%
+      pivot_wider(
+        names_from = Subtype,
+        values_from = c(HR, CI_lower, CI_upper, pval),
+        names_sep = "_"
+      ) %>%
+      separate(
+        Model,
+        into = c("Model", "pollutantplus", "units", "extra", "lag"),
+        sep = "_"
+      )%>%
+      mutate(
+        pollutant = case_when(
+          grepl("P25", pollutantplus) ~ "PM 2.5",
+          grepl("P10", pollutantplus) ~ "PM 10",
+          TRUE ~ "ERROR"
+        ), 
+        exposure = case_when(
+          grepl("avg", pollutantplus) ~ "average",
+          grepl("point", pollutantplus) ~ "point",
+          TRUE ~ "ERROR"
+        ), 
+        units = case_when(
+          grepl("10", units) ~ "per10",
+          grepl("5", units) ~ "per5",
+          TRUE ~ "ERROR"
+        ), 
+        lag = case_when(
+          grepl("no", lag) ~ "no years",
+          grepl("2", lag) ~ "2 years",
+          grepl("5", lag) ~ "5 years",
+          TRUE ~ "ERROR"
+        )
+      ) %>%
+      select(
+        -pollutantplus, -extra
+      ) %>%
+      filter(
+        lag == lag_choice,
+        exposure == exp_choice
+      ) %>%
+      mutate(
+        # Format HR (95% CI) strings
+        `HR (95% CI) Positive` = paste0(round(HR_pos, 2), 
+                                        " (", round(CI_lower_pos, 2), 
+                                        ", ", round(CI_upper_pos, 2), ")"),
+        `HR (95% CI) Negative` = paste0(round(HR_neg, 2), 
+                                        " (", round(CI_lower_neg, 2), 
+                                        ", ", round(CI_upper_neg, 2), ")"),
+        `HR (95% CI) Unknown` = paste0(round(HR_unk, 2), 
+                                       " (", round(CI_lower_unk, 2), 
+                                       ", ", round(CI_upper_unk, 2), ")"),
+        `Wald p-value` = round(wald_pval, 3)
+      ) %>%
+      select(
+        Model,
+        Pollutant = pollutant,
+        Lag = lag,
+        Exposure = exposure,
+        Units = units,
+        `HR (95% CI) Positive`,
+        pval_pos,
+        `HR (95% CI) Negative`,
+        pval_neg,
+        `HR (95% CI) Unknown`,
+        pval_unk,
+        `Wald p-value`
+      ) %>%
+      arrange(Pollutant, Model) 
+    
+    gt_table <- data_clean %>%
+      select(-Lag, -Exposure, -Units) %>%
+      gt(groupname_col = "Model") %>%
+      tab_header(
+        title = paste0("Subtype analysis by ", type),
+        subtitle = paste0(
+          "HR with 95%CI and interaction p-values (Wald) per 5 ug/m3 - Lag: ",
+          lag_choice, ", Exposure: ", exp_choice
+        )
+      ) %>%
+      
+      tab_spanner(
+        label = "ER Positive",
+        columns = c(`HR (95% CI) Positive`, pval_pos)
+      ) %>%
+      tab_spanner(
+        label = "ER Negative",
+        columns = c(`HR (95% CI) Negative`, pval_neg)
+      ) %>%
+      tab_spanner(
+        label = "ER Unknown",
+        columns = c(`HR (95% CI) Unknown`, pval_unk)
+      ) %>%
+      cols_label(
+        Pollutant = "Pollutant",
+        `HR (95% CI) Positive` = "HR (95% CI)",
+        pval_pos = "p-value",
+        `HR (95% CI) Negative` = "HR (95% CI)",
+        pval_neg = "p-value",
+        `HR (95% CI) Unknown` = "HR (95% CI)",
+        pval_unk = "p-value",
+        `Wald p-value` = "Wald p-value"
+      ) %>%
+      fmt_missing(
+        columns = everything(),
+        missing_text = "—"
+      ) %>%
+      tab_options(
+        table.font.size = "small",
+        column_labels.font.weight = "bold"
       )
-    ) %>%
-    select(Model, Outcome, Exposure, ExpUnits, ExpLength, Event, HR_CI_p, Wald)
+  } else if(type == "Menopausal Status"){
+    
+    data_clean <- data %>%
+      filter(
+        lag == lag_choice,
+        exposure == exp_choice,
+      ) %>%
+      mutate(
+        pollutant = case_when(
+          grepl("P25", pollutant) ~ "PM 2.5",
+          grepl("P10", pollutant) ~ "PM 10",
+          TRUE ~ "ERROR"
+        ),
+        # Format HR (95% CI) strings
+        `HR (95% CI) Pre` = paste0(round(HR_pre, 2), 
+                                   " (", round(CI_lower_pre, 2), 
+                                   ", ", round(CI_upper_pre, 2), ")"),
+        `HR (95% CI) Post` = paste0(round(HR_post, 2), 
+                                    " (", round(CI_lower_post, 2), 
+                                    ", ", round(CI_upper_post, 2), ")"),
+        `Wald p-value` = round(wald_pval, 3) 
+      ) %>%
+      select(
+        Model,
+        Pollutant = pollutant,
+        Lag = lag,
+        Exposure = exposure,
+        Units = units,
+        `HR (95% CI) Pre`,
+        pvalue_pre,
+        `HR (95% CI) Post`,
+        pvalue_post,
+        `Wald p-value`
+      ) %>%
+      arrange(Pollutant, Model)
+    
+    gt_table <- data_clean %>%
+      select(-Lag, -Exposure, -Units) %>%
+      gt(groupname_col = "Model") %>%
+      tab_header(
+        title = paste0("Subtype analysis by ", type),
+        subtitle = paste0(
+          "HR with 95%CI and interaction p-values (Wald) per 5 ug/m3 - Lag: ",
+          lag_choice, ", Exposure: ", exp_choice
+        )
+      ) %>%
+      
+      tab_spanner(
+        label = "Premenopausal",
+        columns = c(`HR (95% CI) Pre`, pvalue_pre)
+      ) %>%
+      tab_spanner(
+        label = "Postmenopausal",
+        columns = c(`HR (95% CI) Post`, pvalue_post)
+      ) %>%
+      cols_label(
+        Pollutant = "Pollutant",
+        `HR (95% CI) Pre` = "HR (95% CI)",
+        pvalue_pre = "p-value",
+        `HR (95% CI) Post` = "HR (95% CI)",
+        pvalue_post = "p-value",
+        `Wald p-value` = "Wald p-value"
+      ) %>%
+      
+      fmt_missing(
+        columns = everything(),
+        missing_text = "—"
+      ) %>%
+      tab_options(
+        table.font.size = "small",
+        column_labels.font.weight = "bold"
+      )
+  } else {
+    stop( "ERROR: options are only ER Status or Menopausal Status")
+  }
   
-  # Pivot Events wide
-  results_wide <- results_formatted %>%
-    pivot_wider(
-      names_from = Event,
-      values_from = HR_CI_p
-    ) %>%
-    group_by(Outcome, Exposure, Model, ExpUnits, ExpLength) %>%
-    mutate(Wald = round(first(Wald), 4)) %>%
-    ungroup() %>%
-    select(ExpLength, Model, Outcome, Exposure, ExpUnits, Positive, Negative, Unknown, Wald)
   
-  # Filter by lag & exposure definition
-  results_filtered <- results_wide %>%
-    filter(Outcome == lag_choice, ExpLength == exp_def_choice) %>%
-    select(-Outcome)
+  return(gt_table)
   
-  # Create gt table grouped by Exposure
-  tbl <- results_filtered %>%
-    group_by(Exposure, ExpLength) %>%
-    gt(groupname_col = "Model") %>%
-    tab_header(
-      title = md(paste("Menopause HRs by ER status:", lag_choice)),
-      subtitle = paste("Exposure type:", exp_def_choice)
-    ) %>%
-    tab_options(
-      row_group.as_column = TRUE,
-      table.font.size = 12
-    ) %>%
-    cols_label(
-      ExpUnits = "Exposure Units",
-      Positive = "Positive",
-      Negative = "Negative",
-      Unknown = "Unknown",
-      Wald = "Wald Test (pos vs. neg)"
-    )
-  
-  return(tbl)
 }
+
+

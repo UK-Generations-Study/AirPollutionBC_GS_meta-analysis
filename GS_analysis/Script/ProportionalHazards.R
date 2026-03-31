@@ -26,18 +26,6 @@ P10_C <- coxph(
   data = cohort_mensplit
 )
 
-NO2_A <- coxph(
-  Surv(age_start365/365, c_age365/365, bc_nolag) ~ I(pointNO2 / 10) + matchyear_cat,
-  data = complete_cohort
-)
-NO2_B <- coxph(
-  Surv(age_start365/365, c_age365/365, bc_nolag) ~ I(pointNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat,
-  data = complete_cohort
-)
-NO2_C <- coxph(
-  Surv(tstart/365, tstop/365, outcome) ~ I(pointNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf,
-  data = cohort_mensplit
-)
 
 # Proportional hazard testing: 
 
@@ -49,9 +37,6 @@ ph_P10_A <- cox.zph(P10_A)
 ph_P10_B <- cox.zph(P10_B)
 ph_P10_C <- cox.zph(P10_C)
 
-ph_NO2_A <- cox.zph(NO2_A)
-ph_NO2_B <- cox.zph(NO2_B)
-ph_NO2_C <- cox.zph(NO2_C)
 
 # Prooportional hazard equation for saving results
 extract_ph <- function(ph_model, model_name) {
@@ -73,10 +58,6 @@ ph_summary <- bind_rows(
   extract_ph(ph_P10_A, "P10_A"),
   extract_ph(ph_P10_B, "P10_B"),
   extract_ph(ph_P10_C, "P10_C"),
-  
-  extract_ph(ph_NO2_A, "NO2_A"),
-  extract_ph(ph_NO2_B, "NO2_B"),
-  extract_ph(ph_NO2_C, "NO2_C")
 )
 
 ph_summary_clean <- ph_summary %>%
