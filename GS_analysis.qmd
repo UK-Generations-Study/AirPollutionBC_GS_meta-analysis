@@ -192,30 +192,24 @@ all_results <- rbind(
 ```{r}
 cohort_mensplit_5lag_changed <- cohort_mensplit_5lag %>%
   mutate(
-    avgNO2 = avgNO2/10, 
     avgP25 = avgP25/5,
     avgP10 = avgP10/5,
-    pointNO2 = pointNO2/10, 
     pointP25 = pointP25/5,
     pointP10 = pointP10/5
   )
 
 cohort_mensplit_2lag_changed <- cohort_mensplit_2lag %>%
   mutate(
-    avgNO2 = avgNO2/10, 
     avgP25 = avgP25/5,
     avgP10 = avgP10/5,
-    pointNO2 = pointNO2/10, 
     pointP25 = pointP25/5,
     pointP10 = pointP10/5
   )
 
 cohort_mensplit_nolag_changed <- cohort_mensplit %>%
   mutate(
-    avgNO2 = avgNO2/10, 
     avgP25 = avgP25/5,
     avgP10 = avgP10/5,
-    pointNO2 = pointNO2/10, 
     pointP25 = pointP25/5,
     pointP10 = pointP10/5
   )
@@ -277,7 +271,7 @@ education <- covariate(complete_cohort, Educ_cat)
 parity <- covariate(complete_cohort, Parity_cat)
 agefirstbirth <- covariate(complete_cohort, Birth1_age_cat)
 HRT <- covariate(complete_cohort, HRT_cat)
-meno <- covariate(cohort_mensplit, menobandf)
+meno <- covariate(cohort_mensplit, Menopause_cat)
 
 table1 <- bind_rows(outcome, age, yearofentry, carstairs, bmi, smoking, alcohol, education, parity, agefirstbirth, HRT, meno)
 
@@ -365,6 +359,13 @@ all_evalues
 # Figure 2: Primary Outcome
 
 ```{r}
+#| label: Figure 2
+#| fig-align: center
+#| fig-width: 10
+#| fig-height: 5
+#| warning: false
+#| echo: false
+
 average_nolag_plot <- full_cohort_plot(all_results, lag_value = "nolag", exp_def = "average")
 
 average_nolag_plot
@@ -373,10 +374,12 @@ average_nolag_plot
 # Figure 3 : By Menopausal Status
 
 ```{r}
-menopause_NO2_plot <- menopause_plot(all_menopause,
-                      pollutant_choice = "NO2",
-                      lag_choice = "no years",
-                      exp_def_choice = "average")
+#| label: Figure 3
+#| fig-align: center
+#| fig-width: 15
+#| fig-height: 5
+#| warning: false
+#| echo: false
 
 menopause_P25_plot <- menopause_plot(all_menopause,
                       pollutant_choice = "P25",
@@ -388,9 +391,10 @@ menopause_P10_plot <- menopause_plot(all_menopause,
                       lag_choice = "no years",
                       exp_def_choice = "average")
 
-menopause_NO2_plot
-menopause_P25_plot
-menopause_P10_plot
+menopause_P25_plot + menopause_P10_plot + plot_annotation(
+  title = "By Menopausal Status", 
+  theme = theme(plot.title = element_text(size = 28))
+)
 
 ```
 
@@ -398,204 +402,190 @@ menopause_P10_plot
 # Figure 4: By ER Status
 
 ```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "NO2",
+#| label: Figure 4
+#| fig-align: center
+#| fig-width: 15
+#| fig-height: 5
+#| warning: false
+#| echo: false
+
+PM25erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM 2.5",
                 lag_choice = "no lag",
                 exp_def_choice = "average")
-erstatus
+PM10erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM 10",
+                lag_choice = "no lag",
+                exp_def_choice = "average")
+PM25erstatus + PM10erstatus + plot_annotation(
+  title = "By ER Status", 
+  theme = theme(plot.title = element_text(size = 28))
+)
+
+
 ```
 
-```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "PM2.5",
-                lag_choice = "no lag",
-                exp_def_choice = "average")
-erstatus
-```
-
-```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "PM10",
-                lag_choice = "no lag",
-                exp_def_choice = "average")
-erstatus
-```
 
 # Supplementary Figure 1 : Sensitivity Full Cohort
 
 
 ```{r}
-point_nolag_plot <- full_cohort_plot(all_results, lag_value = "nolag", exp_def = "point")
+#| label: Supp Fig 1
+#| fig-align: center
+#| fig-width: 20
+#| fig-height: 5
+#| warning: false
+#| echo: false
+point_nolag_plot <- full_cohort_plot(all_results, lag_value = "nolag", exp_def = "point", plot_title = "Point Exposure")
 
-point_nolag_plot
-```
+average_2lag_plot <- full_cohort_plot(all_results, lag_value = "2lag", exp_def = "average", plot_title = "2 year time lag")
 
-```{r}
-average_2lag_plot <- full_cohort_plot(all_results, lag_value = "2lag", exp_def = "average")
+average_5lag_plot <- full_cohort_plot(all_results, lag_value = "5lag", exp_def = "average", plot_title = "5 year time lag")
 
-average_2lag_plot
-```
-
-```{r}
-average_5lag_plot <- full_cohort_plot(all_results, lag_value = "5lag", exp_def = "average")
-
-average_5lag_plot
+point_nolag_plot + average_2lag_plot +average_5lag_plot + plot_annotation(
+  title = "Sensitivity Analysis: Full Cohort", 
+  theme = theme(plot.title = element_text(size = 28))
+)
 ```
 
 
 # Supplementary Figure 2 : Sensitivity Menopausal
 
-## Point
-
 ```{r}
-
-menopause_NO2_plot <- menopause_plot(all_menopause,
-                      pollutant_choice = "NO2",
-                      lag_choice = "no years",
-                      exp_def_choice = "point")
-
-menopause_P25_plot <- menopause_plot(all_menopause,
+#| label: Supp Fig 2
+#| fig-align: center
+#| fig-width: 20
+#| fig-height: 20
+#| warning: false
+#| echo: false
+#| 
+point_menopause_P25_plot <- menopause_plot(all_menopause,
                       pollutant_choice = "P25",
                       lag_choice = "no years",
                       exp_def_choice = "point")
 
-menopause_P10_plot <- menopause_plot(all_menopause,
+point_menopause_P10_plot <- menopause_plot(all_menopause,
                       pollutant_choice = "P10",
                       lag_choice = "no years",
                       exp_def_choice = "point")
 
-menopause_NO2_plot
-menopause_P25_plot
-menopause_P10_plot
-```
-
-
-## 2 year lag
-
-```{r}
-menopause_NO2_plot <- menopause_plot(all_menopause,
-                      pollutant_choice = "NO2",
-                      lag_choice = "2 years",
-                      exp_def_choice = "average")
-
-menopause_P25_plot <- menopause_plot(all_menopause,
+lag2_menopause_P25_plot <- menopause_plot(all_menopause,
                       pollutant_choice = "P25",
                       lag_choice = "2 years",
                       exp_def_choice = "average")
 
-menopause_P10_plot <- menopause_plot(all_menopause,
+lag2_menopause_P10_plot <- menopause_plot(all_menopause,
                       pollutant_choice = "P10",
                       lag_choice = "2 years",
                       exp_def_choice = "average")
 
-menopause_NO2_plot
-menopause_P25_plot
-menopause_P10_plot
-```
-
-## 5 year lag
-
-```{r}
-
-menopause_NO2_plot <- menopause_plot(all_menopause,
-                      pollutant_choice = "NO2",
-                      lag_choice = "5 years",
-                      exp_def_choice = "average")
-
-menopause_P25_plot <- menopause_plot(all_menopause,
+lag5_menopause_P25_plot <- menopause_plot(all_menopause,
                       pollutant_choice = "P25",
                       lag_choice = "5 years",
                       exp_def_choice = "average")
 
-menopause_P10_plot <- menopause_plot(all_menopause,
+lag5_menopause_P10_plot <- menopause_plot(all_menopause,
                       pollutant_choice = "P10",
                       lag_choice = "5 years",
                       exp_def_choice = "average")
 
-menopause_NO2_plot
-menopause_P25_plot
-menopause_P10_plot
+
+
+point_row <- wrap_elements(
+  (point_menopause_P25_plot + point_menopause_P10_plot) +
+    plot_layout(ncol = 2) +
+    plot_annotation(title = "Point Exposure", theme = theme(plot.title = element_text(size = 25)))
+)
+
+lag2_row <- wrap_elements(
+  (lag2_menopause_P25_plot + lag2_menopause_P10_plot) +
+    plot_layout(ncol = 2) +
+    plot_annotation(title = "2-year lag", theme = theme(plot.title = element_text(size = 25)))
+)
+
+lag5_row <- wrap_elements(
+  (lag5_menopause_P25_plot + lag5_menopause_P10_plot) +
+    plot_layout(ncol = 2) +
+    plot_annotation(title = "5-year lag", theme = theme(plot.title = element_text(size = 25)))
+)
+
+(point_row / lag2_row / lag5_row) +
+  plot_annotation(
+    title = "Sensitivity Analysis: By Menopausal Status",
+    theme = theme(plot.title = element_text(size = 28))
+  )
 ```
+
 
 
 # Supplementary Figure 3 : Sensitivity ER Status
 
-## point
-
 ```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "NO2",
+#| label: Supp Fig 3
+#| fig-align: center
+#| fig-width: 20
+#| fig-height: 20
+#| warning: false
+#| echo: false
+#| 
+point_P25_erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM 2.5",
                 lag_choice = "no lag",
                 exp_def_choice = "point")
-erstatus
-```
 
-```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "PM2.5",
+point_P10_erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM 10",
                 lag_choice = "no lag",
                 exp_def_choice = "point")
-erstatus
-```
 
-```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "PM10",
-                lag_choice = "no lag",
-                exp_def_choice = "point")
-erstatus
-```
-
-## 2 year Lag
-
-```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "NO2",
+lag2_P25_erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM 2.5",
                 lag_choice = "2yr lag",
                 exp_def_choice = "average")
-erstatus
-```
 
-```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "PM2.5",
+lag2_P10_erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM 10",
                 lag_choice = "2yr lag",
                 exp_def_choice = "average")
-erstatus
-```
 
-```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "PM10",
-                lag_choice = "2yr lag",
-                exp_def_choice = "average")
-erstatus
-```
-
-## 5 year Lag
-```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "NO2",
+lag5_P25_erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM 2.5",
                 lag_choice = "5yr lag",
                 exp_def_choice = "average")
-erstatus
-```
 
-```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "PM2.5",
+lag5_P10_erstatus <- erstatus_plot(lunnmcneil_results,
+                pollutant_choice = "PM 10",
                 lag_choice = "5yr lag",
                 exp_def_choice = "average")
-erstatus
+
+
+point_row <- wrap_elements(
+  (point_P25_erstatus + point_P10_erstatus) +
+    plot_layout(ncol = 2) +
+    plot_annotation(title = "Point Exposure", theme = theme(plot.title = element_text(size = 25)))
+)
+
+lag2_row <- wrap_elements(
+  (lag2_P25_erstatus + lag2_P10_erstatus) +
+    plot_layout(ncol = 2) +
+    plot_annotation(title = "2-year lag", theme = theme(plot.title = element_text(size = 25)))
+)
+
+lag5_row <- wrap_elements(
+  (lag5_P25_erstatus + lag5_P10_erstatus) +
+    plot_layout(ncol = 2) +
+    plot_annotation(title = "5-year lag", theme = theme(plot.title = element_text(size = 25)))
+)
+
+(point_row / lag2_row / lag5_row) +
+  plot_annotation(
+    title = "Sensitivity Analysis: By ER Status",
+    theme = theme(plot.title = element_text(size = 28))
+  )
+
+
 ```
 
-```{r}
-erstatus <- erstatus_plot(lunnmcneil_results,
-                pollutant_choice = "PM10",
-                lag_choice = "5yr lag",
-                exp_def_choice = "average")
-erstatus
-```
 
 # Supplementary Table 2: Primary Analysis
 
@@ -610,9 +600,11 @@ average_table
 # Supplementary Table 3: Menopausal Status Tables
 
 ```{r}
-menopausal_table <- menopause_table(all_menopause,
-                lag_choice = "no years",
-                exp_choice = "average")
+menopausal_table <- subanalysis_table(
+  all_menopause,
+  type = "Menopausal Status",
+  lag_choice = "no years",
+  exp_choice = "average")
 
 menopausal_table
 ```
@@ -620,9 +612,11 @@ menopausal_table
 # Supplementary Table 4: ER Status Table
 
 ```{r}
-erstatus_all_table <- erstatus_table(lunnmcneil_results,
-                 lag_choice = "no lag",
-                 exp_def_choice = "average")
+erstatus_all_table <- subanalysis_table(
+  lunnmcneil_results,
+  type = "ER Status",
+  lag_choice = "no years",
+  exp_choice = "average")
 
 erstatus_all_table
 ```
@@ -663,9 +657,11 @@ average_5lag_table
 
 ## point
 ```{r}
-menopausal_table <- menopause_table(all_menopause,
-                lag_choice = "no years",
-                exp_choice = "point")
+menopausal_table <- subanalysis_table(
+  all_menopause,
+  type = "Menopausal Status",
+  lag_choice = "no years",
+  exp_choice = "point")
 
 menopausal_table
 ```
@@ -673,9 +669,11 @@ menopausal_table
 ## 2 year lag
 
 ```{r}
-menopausal_table <- menopause_table(all_menopause,
-                lag_choice = "2 years",
-                exp_choice = "average")
+menopausal_table <- subanalysis_table(
+  all_menopause,
+  type = "Menopausal Status",
+  lag_choice = "2 years",
+  exp_choice = "average")
 
 menopausal_table
 ```
@@ -683,9 +681,11 @@ menopausal_table
 
 ## 5 year lag
 ```{r}
-menopausal_table <- menopause_table(all_menopause,
-                lag_choice = "5 years",
-                exp_choice = "average")
+menopausal_table <- subanalysis_table(
+  all_menopause,
+  type = "Menopausal Status",
+  lag_choice = "5 years",
+  exp_choice = "average")
 
 menopausal_table
 ```
@@ -694,27 +694,32 @@ menopausal_table
 ## point
 
 ```{r}
-erstatus_point_table <- erstatus_table(lunnmcneil_results,
-                 lag_choice = "no lag",
-                 exp_def_choice = "point")
+erstatus_point_table <- subanalysis_table(
+  lunnmcneil_results,
+  type = "ER Status",
+  lag_choice = "no years",
+  exp_choice = "point")
 
 erstatus_point_table
 ```
 ## 2 year Lag
 
 ```{r}
-erstatus_2yr_table <- erstatus_table(lunnmcneil_results,
-                 lag_choice = "2yr lag",
-                 exp_def_choice = "average")
+erstatus_2yr_table <- subanalysis_table(
+  lunnmcneil_results,
+  type = "ER Status",
+  lag_choice = "2 years",
+  exp_choice = "average")
 
 erstatus_2yr_table
 ```
 ## 5 year Lag
 
 ```{r}
-erstatus_5yr_table <- erstatus_table(lunnmcneil_results,
-                 lag_choice = "5yr lag",
-                 exp_def_choice = "average")
-
+erstatus_5yr_table <- subanalysis_table(
+  lunnmcneil_results,
+  type = "ER Status",
+  lag_choice = "5 years",
+  exp_choice = "average")
 erstatus_5yr_table
 ```

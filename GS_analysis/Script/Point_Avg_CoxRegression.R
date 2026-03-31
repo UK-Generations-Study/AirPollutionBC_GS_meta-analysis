@@ -29,22 +29,6 @@ P10_C <- coxph(
   data = cohort_mensplit
 )
 
-NO2_A <- coxph(
-  Surv(age_start365, c_age365, bc_nolag) ~ I(pointNO2 / 10) + matchyear_cat,
-  data = complete_cohort
-)
-NO2_B <- coxph(
-  Surv(age_start365, c_age365, bc_nolag) ~ I(pointNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat,
-  data = complete_cohort
-)
-NO2_C <- coxph(
-  Surv(tstart, tstop, outcome) ~ I(pointNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
-  data = cohort_mensplit
-)
-
-NO2_A_clean <- extract_cox(NO2_A, "NO2_A", "NO2")
-NO2_B_clean <- extract_cox(NO2_B, "NO2_B", "NO2")
-NO2_C_clean <- extract_cox(NO2_C, "NO2_C", "NO2")
 
 P25_A_clean <- extract_cox(P25_A, "P25_A", "P25")
 P25_B_clean <- extract_cox(P25_B, "P25_B", "P25")
@@ -55,9 +39,6 @@ P10_B_clean <- extract_cox(P10_B, "P10_B", "P10")
 P10_C_clean <- extract_cox(P10_C, "P10_C", "P10")
 
 point_nolag <- rbind(
-  NO2_A_clean, 
-  NO2_B_clean, 
-  NO2_C_clean,
   
   P25_A_clean,
   P25_B_clean,
@@ -126,23 +107,6 @@ P10_C <- coxph(
   data = cohort_mensplit_2lag
 )
 
-NO2_A <- coxph(
-  Surv(age_start365, c_age365, bc_2lag) ~ I(pointNO2 / 10) + matchyear_cat,
-  data = complete_cohort_2lag
-)
-NO2_B <- coxph(
-  Surv(age_start365, c_age365, bc_2lag) ~ I(pointNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat,
-  data = complete_cohort_2lag
-)
-NO2_C <- coxph(
-  Surv(tstart, tstop, outcome) ~ I(pointNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
-  data = cohort_mensplit_2lag
-)
-
-NO2_A_clean <- extract_cox(NO2_A, "NO2_A", "NO2")
-NO2_B_clean <- extract_cox(NO2_B, "NO2_B", "NO2")
-NO2_C_clean <- extract_cox(NO2_C, "NO2_C", "NO2")
-
 P25_A_clean <- extract_cox(P25_A, "P25_A", "P25")
 P25_B_clean <- extract_cox(P25_B, "P25_B", "P25")
 P25_C_clean <- extract_cox(P25_C, "P25_C", "P25")
@@ -152,10 +116,6 @@ P10_B_clean <- extract_cox(P10_B, "P10_B", "P10")
 P10_C_clean <- extract_cox(P10_C, "P10_C", "P10")
 
 point_2lag <- rbind(
-  NO2_A_clean, 
-  NO2_B_clean, 
-  NO2_C_clean,
-  
   P25_A_clean,
   P25_B_clean,
   P25_C_clean,
@@ -222,23 +182,6 @@ P10_C <- coxph(
   data = cohort_mensplit_5lag
 )
 
-NO2_A <- coxph(
-  Surv(age_start365, c_age365, bc_5lag) ~ I(pointNO2 / 10) + matchyear_cat,
-  data = complete_cohort_5lag
-)
-NO2_B <- coxph(
-  Surv(age_start365, c_age365, bc_5lag) ~ I(pointNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat,
-  data = complete_cohort_5lag
-)
-NO2_C <- coxph(
-  Surv(tstart, tstop, outcome) ~ I(pointNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
-  data = cohort_mensplit_5lag
-)
-
-NO2_A_clean <- extract_cox(NO2_A, "NO2_A", "NO2")
-NO2_B_clean <- extract_cox(NO2_B, "NO2_B", "NO2")
-NO2_C_clean <- extract_cox(NO2_C, "NO2_C", "NO2")
-
 P25_A_clean <- extract_cox(P25_A, "P25_A", "P25")
 P25_B_clean <- extract_cox(P25_B, "P25_B", "P25")
 P25_C_clean <- extract_cox(P25_C, "P25_C", "P25")
@@ -248,10 +191,6 @@ P10_B_clean <- extract_cox(P10_B, "P10_B", "P10")
 P10_C_clean <- extract_cox(P10_C, "P10_C", "P10")
 
 point_5lag <- rbind(
-  NO2_A_clean, 
-  NO2_B_clean, 
-  NO2_C_clean,
-  
   P25_A_clean,
   P25_B_clean,
   P25_C_clean,
@@ -319,23 +258,6 @@ P10_C <- coxph(
   data = cohort_mensplit
 )
 
-NO2_A <- coxph(
-  Surv(age_start365, c_age365, bc_nolag) ~ I(avgNO2 / 10) + matchyear_cat,
-  data = complete_cohort
-)
-NO2_B <- coxph(
-  Surv(age_start365, c_age365, bc_nolag) ~ I(avgNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat,
-  data = complete_cohort
-)
-NO2_C <- coxph(
-  Surv(tstart, tstop, outcome) ~ I(avgNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
-  data = cohort_mensplit
-)
-
-NO2_A_clean <- extract_cox(NO2_A, "NO2_A", "NO2")
-NO2_B_clean <- extract_cox(NO2_B, "NO2_B", "NO2")
-NO2_C_clean <- extract_cox(NO2_C, "NO2_C", "NO2")
-
 P25_A_clean <- extract_cox(P25_A, "P25_A", "P25")
 P25_B_clean <- extract_cox(P25_B, "P25_B", "P25")
 P25_C_clean <- extract_cox(P25_C, "P25_C", "P25")
@@ -345,10 +267,6 @@ P10_B_clean <- extract_cox(P10_B, "P10_B", "P10")
 P10_C_clean <- extract_cox(P10_C, "P10_C", "P10")
 
 avg_nolag <- rbind(
-  NO2_A_clean, 
-  NO2_B_clean, 
-  NO2_C_clean,
-  
   P25_A_clean,
   P25_B_clean,
   P25_C_clean,
@@ -415,23 +333,6 @@ P10_C <- coxph(
   data = cohort_mensplit_2lag
 )
 
-NO2_A <- coxph(
-  Surv(age_start365, c_age365, bc_2lag) ~ I(avgNO2 / 10) + matchyear_cat,
-  data = complete_cohort_2lag
-)
-NO2_B <- coxph(
-  Surv(age_start365, c_age365, bc_2lag) ~ I(avgNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat,
-  data = complete_cohort_2lag
-)
-NO2_C <- coxph(
-  Surv(tstart, tstop, outcome) ~ I(avgNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
-  data = cohort_mensplit_2lag
-)
-
-NO2_A_clean <- extract_cox(NO2_A, "NO2_A", "NO2")
-NO2_B_clean <- extract_cox(NO2_B, "NO2_B", "NO2")
-NO2_C_clean <- extract_cox(NO2_C, "NO2_C", "NO2")
-
 P25_A_clean <- extract_cox(P25_A, "P25_A", "P25")
 P25_B_clean <- extract_cox(P25_B, "P25_B", "P25")
 P25_C_clean <- extract_cox(P25_C, "P25_C", "P25")
@@ -441,10 +342,6 @@ P10_B_clean <- extract_cox(P10_B, "P10_B", "P10")
 P10_C_clean <- extract_cox(P10_C, "P10_C", "P10")
 
 avg_2lag <- rbind(
-  NO2_A_clean, 
-  NO2_B_clean, 
-  NO2_C_clean,
-  
   P25_A_clean,
   P25_B_clean,
   P25_C_clean,
@@ -511,23 +408,6 @@ P10_C <- coxph(
   data = cohort_mensplit_5lag
 )
 
-NO2_A <- coxph(
-  Surv(age_start365, c_age365, bc_5lag) ~ I(avgNO2 / 10) + matchyear_cat,
-  data = complete_cohort_5lag
-)
-NO2_B <- coxph(
-  Surv(age_start365, c_age365, bc_5lag) ~ I(avgNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat,
-  data = complete_cohort_5lag
-)
-NO2_C <- coxph(
-  Surv(tstart, tstop, outcome) ~ I(avgNO2 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
-  data = cohort_mensplit_5lag
-)
-
-NO2_A_clean <- extract_cox(NO2_A, "NO2_A", "NO2")
-NO2_B_clean <- extract_cox(NO2_B, "NO2_B", "NO2")
-NO2_C_clean <- extract_cox(NO2_C, "NO2_C", "NO2")
-
 P25_A_clean <- extract_cox(P25_A, "P25_A", "P25")
 P25_B_clean <- extract_cox(P25_B, "P25_B", "P25")
 P25_C_clean <- extract_cox(P25_C, "P25_C", "P25")
@@ -537,10 +417,6 @@ P10_B_clean <- extract_cox(P10_B, "P10_B", "P10")
 P10_C_clean <- extract_cox(P10_C, "P10_C", "P10")
 
 avg_5lag <- rbind(
-  NO2_A_clean, 
-  NO2_B_clean, 
-  NO2_C_clean,
-  
   P25_A_clean,
   P25_B_clean,
   P25_C_clean,

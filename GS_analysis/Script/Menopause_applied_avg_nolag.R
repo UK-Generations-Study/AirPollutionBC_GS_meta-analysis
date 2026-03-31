@@ -1,15 +1,4 @@
 
-
-A_NO2_int <- coxph(Surv(tstart/365, tstop/365, outcome) ~ avgNO2 * menobandf + menobandf + matchyear_cat+ cluster(TCode), 
-                   data = cohort_mensplit_nolag_changed)
-
-B_NO2_int <- coxph(Surv(tstart/365, tstop/365, outcome) ~ avgNO2 * menobandf + menobandf + matchyear_cat + BMI + Carstairs_cat + Smoking_cat + Alcohol_cat+ cluster(TCode), 
-                   data = cohort_mensplit_nolag_changed)
-
-C_NO2_int <- coxph(Surv(tstart/365, tstop/365, outcome) ~ avgNO2 * menobandf + menobandf + matchyear_cat + BMI + Carstairs_cat + Smoking_cat + Alcohol_cat+ Parity_cat + Birth1_age_cat + HRT_cat  + cluster(TCode), 
-                   data = cohort_mensplit_nolag_changed)
-
-
 A_P25_int <- coxph(Surv(tstart/365, tstop/365, outcome) ~ avgP25 * menobandf + menobandf + matchyear_cat+ cluster(TCode), 
                    data = cohort_mensplit_nolag_changed)
 B_P25_int <- coxph(Surv(tstart/365, tstop/365, outcome) ~ avgP25 * menobandf + menobandf + matchyear_cat + BMI + Carstairs_cat + Smoking_cat + Alcohol_cat+ cluster(TCode), 
@@ -26,10 +15,6 @@ C_P10_int <- coxph(Surv(tstart/365, tstop/365, outcome) ~ avgP10 * menobandf + m
                    data = cohort_mensplit_nolag_changed)
 
 interaction_HR <- rbind(
-  extract_hr_ci_avg(A_NO2_int, "A_NO2_int"),
-  extract_hr_ci_avg(B_NO2_int, "B_NO2_int"),
-  extract_hr_ci_avg(C_NO2_int, "C_NO2_int"),
-  
   extract_hr_ci_avg(A_P25_int, "A_P25_int"),
   extract_hr_ci_avg(B_P25_int, "B_P25_int"),
   extract_hr_ci_avg(C_P25_int, "C_P25_int"),
@@ -41,10 +26,6 @@ interaction_HR <- rbind(
 
 
 wald_pval <- rbind(
-  wald_pvalue(A_NO2_int, "avgNO2:menobandfpostmenopausal","A_NO2_int"),
-  wald_pvalue(B_NO2_int, "avgNO2:menobandfpostmenopausal","B_NO2_int"),
-  wald_pvalue(C_NO2_int, "avgNO2:menobandfpostmenopausal","C_NO2_int"),
-  
   wald_pvalue(A_P25_int, "avgP25:menobandfpostmenopausal","A_P25_int"),
   wald_pvalue(B_P25_int, "avgP25:menobandfpostmenopausal","B_P25_int"),
   wald_pvalue(C_P25_int, "avgP25:menobandfpostmenopausal","C_P25_int"),
