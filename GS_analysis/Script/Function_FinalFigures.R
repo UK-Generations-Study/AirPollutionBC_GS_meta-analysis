@@ -253,9 +253,10 @@ subanalysis_plot <- function(data, type = "Menopausal Status", lag_choice = "no 
     color = Event, 
     group = Event
   )) +
-    geom_point(size = 3, position = position_dodge(width = 0.5)) +
+    geom_point(size = 4, position = position_dodge(width = 0.5)) +
     geom_errorbarh(
-      height = 0.2,
+      height = 0.1,
+      linewidth = 0.7,
       position = position_dodge(width = 0.5)
     ) +
     geom_vline(xintercept = 1, linetype = "dashed", color = "gray50") +
@@ -268,11 +269,11 @@ subanalysis_plot <- function(data, type = "Menopausal Status", lag_choice = "no 
     ) +
     scale_x_log10(
       breaks = c(0.5, 0.75, 1, 1.25, 1.5, 2),
-      limits = c(0.75, 1.75)
+      limits = c(0.75, 2)
     ) +
     scale_color_manual(
       breaks = if(type == "Menopausal Status") {c("Premenopausal", "Postmenopausal")} else {c("ER Positive", "ER Negative")},
-      values = if(type == "Menopausal Status") {c("Premenopausal" = "#1f78b4","Postmenopausal" = "#e31a1c")} else {c("ER Positive" = "#1f78b4", "ER Negative"= "#e31a1c")}
+      values = if(type == "Menopausal Status") {c("Premenopausal" = "#2a9d8f","Postmenopausal" = "#e76f51")} else {c("ER Positive" = "#2a9d8f", "ER Negative"= "#e76f51")}
     ) +
     theme_minimal(base_size = 13) +
     theme(
@@ -289,6 +290,7 @@ subanalysis_plot <- function(data, type = "Menopausal Status", lag_choice = "no 
   
   return(p)
 }
+
 #################################
 # Subtype Table
 
