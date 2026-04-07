@@ -67,14 +67,14 @@ full_cohort_table <- function(data, table_title = NULL) {
         TRUE ~ 0
       ), 
       Analysis = case_when(
-        included == 1 ~ "Average Exposure", 
+        included == 1 ~ "Average Exposure*", 
         included == 2 ~ "2 year lag", 
         included == 3 ~ "5 year lag", 
         included == 4 ~ "Point Exposure", 
         TRUE ~ "out"
       ),
       Model = factor(Model, levels = c("A", "B", "C")), 
-      Analysis = factor(Analysis, levels = c("Average Exposure", "Point Exposure", "2 year lag", "5 year lag"))
+      Analysis = factor(Analysis, levels = c("Average Exposure*", "Point Exposure", "2 year lag", "5 year lag"))
     ) %>%
     filter(
       included != 0
@@ -99,8 +99,8 @@ full_cohort_table <- function(data, table_title = NULL) {
     select(
       Model, Variable, Exposure,
       
-      `Average Exposure__HR (95% CI)`,
-      `Average Exposure__p-value`,
+      `Average Exposure*__HR (95% CI)`,
+      `Average Exposure*__p-value`,
       
       `Point Exposure__HR (95% CI)`,
       `Point Exposure__p-value`,
@@ -126,7 +126,9 @@ full_cohort_table <- function(data, table_title = NULL) {
       locations = cells_column_labels()
     ) %>%
     
-    tab_header(title = table_title)
+    tab_header(title = table_title)%>%
+    
+    tab_caption("Primary Analysis")
   
   return(table)
 }

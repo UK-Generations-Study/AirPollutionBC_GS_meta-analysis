@@ -52,7 +52,7 @@ clean_pointP10 <- extract_evalues(pointP10_evalue, "point_PM10")
 clean_avgP25 <- extract_evalues(avgP25_evalue, "avg_PM2.5")
 clean_avgP10 <- extract_evalues(avgP10_evalue, "avg_PM10")
 
-all_evalues <- rbind(clean_pointP25, clean_pointP10, clean_avgP25, clean_avgP10) %>%
+all_evalues <- rbind(clean_avgP25, clean_avgP10) %>%
   filter(
     metric != "RR"
   ) %>%
