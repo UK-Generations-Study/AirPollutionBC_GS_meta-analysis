@@ -6,8 +6,8 @@ set.seed(20251027)
 mu_PM2.5 <- 9.577           # population mean of PM2.5
 sigma_PM2.5 <- 1.389          # population SD of PM2.5
 xref_PM2.5 <- 5            # counterfactual PM2.5 (WHO AQG)
-RR10_PM2.5 <- 1.06
-CI10_PM2.5 <- c(1.03, 1.09)
+RR10_PM2.5 <- 1.07
+CI10_PM2.5 <- c(1.04, 1.10)
 
 ## ---- Derive SE on log scale from CI ----
 logRR10_PM2.5 <- log(RR10_PM2.5)
