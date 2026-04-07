@@ -74,7 +74,8 @@ covariate <- function(dataset, covar) {
   final <- cum_tbl %>%
     mutate(
       covariate = covariate_name,
-      `Total (%)` = Total,
+      `Count (%)` = Total,
+      `Person Years` = round(`Person Years`, 2),
       `Rate per 1,000` = round(`Rate per 1,000`, 2), 
       
       mean_NO2 = round(mean_NO2, 2), 
@@ -110,7 +111,7 @@ covariate <- function(dataset, covar) {
     select(
       covariate,
       Subcategories,
-      `Total (%)`,
+      `Count (%)`,
       Cases,
       `Person Years`,
       `Rate per 1,000`,
