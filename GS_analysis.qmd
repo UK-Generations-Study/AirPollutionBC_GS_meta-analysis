@@ -531,133 +531,8 @@ point_nolag_plot + average_2lag_plot +average_5lag_plot +
 ```
 
 
-# Supplementary Figure 2 : Sensitivity Menopausal
-
-```{r}
-#| label: Supp Fig 2
-#| fig-align: center
-#| fig-width: 20
-#| fig-height: 20
-#| warning: false
-#| echo: false
-#| 
-point_menopause_plot <- subanalysis_plot(
-                            all_menopause,
-                            type = "Menopausal Status",
-                            lag_choice = "no years",
-                            exp_choice = "point")
-
-lag2_menopause_plot <- subanalysis_plot(
-                            all_menopause,
-                            type = "Menopausal Status",
-                            lag_choice = "2 years",
-                            exp_choice = "average")
 
 
-lag5_menopause_plot <- subanalysis_plot(
-                            all_menopause,
-                            type = "Menopausal Status",
-                            lag_choice = "5 years",
-                            exp_choice = "average")
-
-
-
-point_row <- wrap_elements(
-  (point_menopause_plot) +
-    plot_layout(ncol = 1) +
-    plot_annotation(title = "Point Exposure", theme = theme(plot.title = element_text(size = 25)))
-)
-
-lag2_row <- wrap_elements(
-  (lag2_menopause_plot) +
-    plot_layout(ncol = 1) +
-    plot_annotation(title = "2-year lag", theme = theme(plot.title = element_text(size = 25)))
-)
-
-lag5_row <- wrap_elements(
-  (lag5_menopause_plot) +
-    plot_layout(ncol = 1) +
-    plot_annotation(title = "5-year lag", theme = theme(plot.title = element_text(size = 25)))
-)
-
-(point_row / lag2_row / lag5_row) +
-  plot_annotation(
-    title = "Sensitivity Analysis: Particulate Matter Exposure and Breast Cancer Incidence By Menopausal Status",
-     subtitle = "All hazard ratios calculated per 5 ug/m3 of exposure",
-  caption = str_wrap(
-    "Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)",
-    width = 150  # adjust this number to fit your plot
-  ), 
-    theme = theme(
-      plot.title = element_text(size = 28, hjust = 0.5), 
-      plot.subtitle = element_text(size = 25, hjust = 0.5),
-      plot.caption = element_text(size = 20, hjust = 0))
-  )
-```
-
-
-
-# Supplementary Figure 3 : Sensitivity ER Status
-
-```{r}
-#| label: Supp Fig 3
-#| fig-align: center
-#| fig-width: 20
-#| fig-height: 20
-#| warning: false
-#| echo: false
-#| 
-point_erstatus <- subanalysis_plot(lunnmcneil_results,
-                            type = "ER Status",
-                            lag_choice = "no years",
-                            exp_choice = "point")
-
-lag2_erstatus <- subanalysis_plot(lunnmcneil_results,
-                            type = "ER Status",
-                            lag_choice = "2 years",
-                            exp_choice = "average")
-
-
-lag5_erstatus <- subanalysis_plot(lunnmcneil_results,
-                            type = "ER Status",
-                            lag_choice = "5 years",
-                            exp_choice = "average")
-
-
-point_row <- wrap_elements(
-  (point_erstatus) +
-    plot_layout(ncol = 1) +
-    plot_annotation(title = "Point Exposure", theme = theme(plot.title = element_text(size = 25)))
-)
-
-lag2_row <- wrap_elements(
-  (lag2_erstatus) +
-    plot_layout(ncol = 1) +
-    plot_annotation(title = "2-year lag", theme = theme(plot.title = element_text(size = 25)))
-)
-
-lag5_row <- wrap_elements(
-  (lag5_erstatus) +
-    plot_layout(ncol = 1) +
-    plot_annotation(title = "5-year lag", theme = theme(plot.title = element_text(size = 25)))
-)
-
-(point_row / lag2_row / lag5_row) +
-  plot_annotation(
-    title = "Sensitivity Analysis: Particulate Matter Exposure and Breast Cancer Incidence By ER Status",
-     subtitle = "All hazard ratios calculated per 5 ug/m3 of exposure",
-  caption = str_wrap(
-    "Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)",
-    width = 150  # adjust this number to fit your plot
-  ), 
-    theme = theme(
-      plot.title = element_text(size = 28, hjust = 0.5), 
-      plot.subtitle = element_text(size = 25, hjust = 0.5),
-      plot.caption = element_text(size = 20, hjust = 0))
-  )
-
-
-```
 
 
 # Supplementary Table 3: Primary Analysis
@@ -678,7 +553,7 @@ full_cohort
 
 # Supplementary Table 4: Menopausal Status Tables
 
-## Panel A: Average Exposure
+
 ```{r}
 #| label: Supp Table 4 pan A
 #| fig-align: center
@@ -696,63 +571,8 @@ menopausal_table <- subanalysis_table(
 menopausal_table
 ```
 
-## Panel B: Point Exposure
-```{r}
-#| label: Supp Table 4 pan B
-#| fig-align: center
-#| fig-width: 20
-#| fig-height: 20
-#| warning: false
-#| echo: false
-
-menopausal_table <- subanalysis_table(
-  all_menopause,
-  type = "Menopausal Status",
-  lag_choice = "no years",
-  exp_choice = "point")
-
-menopausal_table
-```
-
-## Panel C: 2 year lag
-```{r}
-#| label: Supp Table 4 pan C
-#| fig-align: center
-#| fig-width: 20
-#| fig-height: 20
-#| warning: false
-#| echo: false
-
-menopausal_table <- subanalysis_table(
-  all_menopause,
-  type = "Menopausal Status",
-  lag_choice = "2 years",
-  exp_choice = "average")
-
-menopausal_table
-```
-
-## Panel D: 5 year lag
-```{r}
-#| label: Supp Table 4 pan D
-#| fig-align: center
-#| fig-width: 20
-#| fig-height: 20
-#| warning: false
-#| echo: false
-
-menopausal_table <- subanalysis_table(
-  all_menopause,
-  type = "Menopausal Status",
-  lag_choice = "5 years",
-  exp_choice = "average")
-
-menopausal_table
-```
 
 # Supplementary Table 5: ER Status Table
-
-## Panel A: Average Exposure
 
 ```{r}
 #| label: Supp Table 5 pan A
@@ -771,62 +591,6 @@ erstatus_all_table <- subanalysis_table(
 erstatus_all_table
 ```
 
-## Panel B: Point Exposure
-
-```{r}
-#| label: Supp Table 5 pan B
-#| fig-align: center
-#| fig-width: 20
-#| fig-height: 20
-#| warning: false
-#| echo: false
-
-erstatus_all_table <- subanalysis_table(
-  lunnmcneil_results,
-  type = "ER Status",
-  lag_choice = "no years",
-  exp_choice = "point")
-
-erstatus_all_table
-```
-
-## Panel C: 2 year lag 
-
-```{r}
-#| label: Supp Table 5 pan C
-#| fig-align: center
-#| fig-width: 20
-#| fig-height: 20
-#| warning: false
-#| echo: false
-
-erstatus_all_table <- subanalysis_table(
-  lunnmcneil_results,
-  type = "ER Status",
-  lag_choice = "2 years",
-  exp_choice = "average")
-
-erstatus_all_table
-```
-
-## Panel D: 5 year lag 
-
-```{r}
-#| label: Supp Table 5 pan D
-#| fig-align: center
-#| fig-width: 20
-#| fig-height: 20
-#| warning: false
-#| echo: false
-
-erstatus_all_table <- subanalysis_table(
-  lunnmcneil_results,
-  type = "ER Status",
-  lag_choice = "5 years",
-  exp_choice = "average")
-
-erstatus_all_table
-```
 
 # Extra
 
