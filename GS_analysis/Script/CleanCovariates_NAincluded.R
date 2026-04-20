@@ -1,6 +1,8 @@
 # This code cleans the covariates for the air pollution analysis and creates the final input dataset
 
-base <- base %>%
+
+cleancovariates <- function(cohort_data, data_years, data_carstairs) {
+base <- cohort_data %>%
   mutate(
     # Defining the date of birth 
     ADOB_F = ADOB_F.x
@@ -18,7 +20,7 @@ carstairs <- data_carstairs %>%
 
 
 # Entry Year
-entryyr <- data_realyears %>%
+entryyr <- data_years %>%
   select(TCode, Entry) %>%
   # Remove any participants where there is no entry date (They did not completely enter the study)
   filter(Entry != "NULL") %>%
@@ -386,23 +388,5 @@ complete_cohort <- covariates %>%
     p_years = p_days365 / 365
   )
 
-
-#Filtering complete_cohort based on the menopausal_status determined in the .qmd file: 
-if(menopausal_status == "post"){
-  complete_cohort <- complete_cohort %>% 
-    filter(
-      Menopause_cat == "Postmenopausal"
-    )
-  print("This analysis is on POSTMENOPAUSAL WOMEN ONLY")
-}else if(menopausal_status == "pre"){
-  complete_cohort <- complete_cohort %>% 
-    filter(
-      Menopause_cat == "Premenopausal"
-    )
-  print("This analysis is on PREMENOPAUSAL WOMEN ONLY")
-}else if(menopausal_status == "all"){
-  print("This analysis is for all women in the study")
-} else {
-  stop("INVALID MENOPAUSE SPECIFICATION: options are 'pre', 'post', or 'all'")
 }
 

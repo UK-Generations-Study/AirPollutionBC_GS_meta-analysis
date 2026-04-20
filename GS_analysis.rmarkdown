@@ -1,0 +1,853 @@
+---
+title: "Air Pollution GS analysis"
+author: "ZR"
+format: 
+  html:
+    toc: true
+    toc-depth: 5
+    embed-resources: false
+    grid:
+      sidebar-width: 300px
+      body-width: 1500px
+      margin-width: 300px
+      gutter-width: 1.5rem
+editor:
+  mode: source
+execute:
+  echo: false
+  warning: false
+---
+
+These are the final figures for the air pollution analysis
+
+Setting up
+
+Workspace:
+
+```{r}
+#| warning: false
+#| echo: false
+
+# Setting up the workspace 
+if(Sys.getenv("RSTUDIO") == '1' & !knitr::is_html_output()) { # If using Rstudio and not rendering
+  setwd(dirname(rstudioapi::getActiveDocumentContext()$path))
+} else if(Sys.getenv("RSTUDIO") != '1'){ # If using Rscript
+  initial.options <- commandArgs(trailingOnly = FALSE)
+  file.arg.name <- "--file="
+  script.name <- sub(file.arg.name, "", initial.options[grep(file.arg.name, initial.options)])
+  script.basename <- dirname(script.name)
+  setwd(file.path(getwd(), script.basename))
+}
+```
+
+Packages:
+
+```{r}
+#| warning: false
+#| echo: false
+
+library(dplyr)
+library(rmarkdown)
+library(tinytex)
+library(tidyverse)
+library(haven)
+library(purrr)
+library(survival)
+library(htmltools)
+library(latticeExtra)
+library(sqldf)
+library(labelled)
+library(survminer)
+library(stringr)
+library(aod)
+library(clubSandwich)
+library(Hmisc)
+library(knitr)
+library(muhaz)
+library(ggplot2)
+library(rlang)
+library(gt)
+library(gtsummary)
+library(broom)
+library(webshot2)
+library(patchwork)
+library(zoo)
+library(lubridate)
+library(slider)
+
+```
+
+Functions:
+
+```{r}
+#| warning: false
+#| echo: false
+# Bring in the functions
+
+source("GS_analysis/Script/Function_LoadRDSData.R")
+source("GS_analysis/Script/Function_DataManagement.R")
+source("GS_analysis/Script/Function_Covariate.R")
+source("GS_analysis/Script/Function_InteractionMenopause.R")
+source("GS_analysis/Script/Function_FinalFigures.R")
+source("GS_analysis/Script/Function_extractcox.R")
+source("GS_analysis/Script/ProportionalHazards.R")
+```
+
+Data
+
+```{r}
+#| warning: false
+#| echo: false
+
+data_airpollution <- read_csv("R:/Shared/GENERATIONS/GeoLinkages/GS_Expanse_ForAnalysis.csv")
+data_realyears <- read_csv("R:/Shared/GENERATIONS/Event_Years/RDSTrueYear.csv")
+data_carstairs <- read_csv("R:/Shared/GENERATIONS/GeoLinkages/For_Air_Pollution_Analysis/GS_carstairs2001.csv")
+```
+
+Building the cohort and cleaning the covariates
+
+```{r}
+#| warning: false
+#| echo: false
+
+# Decide cancer of interest:
+# This analysis is focused on breast cancer 
+select_cancer <- "breast_cancer"
+
+# set if cancer is first ever any cancer (YES) - no previous cancers of any type (except NMSC)
+# or first of its type (NO) -there may be previous diagnosis of other cancer (except NMSC)
+first_ever <- "YES"
+
+source("GS_analysis/Script/Cohort_Build.R")
+
+
+# COHORT DEFINITION
+# Menopausal Status
+  # "post" - POSTMENOPAUSAL cohort
+  # "pre" - PREMENOPAUSAL cohort
+  # "all" - ENTIRE cohort
+menopausal_status <- "all"
+
+# EVENT DEFINITION
+# ER status 
+  # "positive" - positive er status BC coded as events only
+  # "negative" - negative er status BC coded as events only
+  # "all"- all BC coded as events
+er_event <- "all"
+# Menopausal Status
+  # "post" - postmenopausal BC coded as events only
+  # "pre" - premenopausal BC coded as events only
+  # "all" - all BC coded as events
+menopausal_event <- "all"
+
+source("GS_analysis/Script/CleanCovariates_NAincluded.R")
+source("GS_analysis/Script/CleanExposure.R")
+
+complete_cohort <- complete_cohort %>%
+  filter(
+    !is.na(BMI)
+  ) # Do not include those who have missing BMI
+```
+
+Analysis set up
+
+
+```{r}
+#| warning: false
+#| echo: false
+
+# Time lag definitions
+
+complete_cohort <- complete_cohort %>%
+  mutate(
+    meno_age_est = as.numeric(meno_age_est)
+  )
+
+complete_cohort_2lag <- complete_cohort %>%
+  mutate(
+    age_start365 = age_start365 + 730
+  ) %>%
+  filter(
+    c_age365 > age_start365
+  )
+
+complete_cohort_5lag <- complete_cohort %>%
+  mutate(
+    age_start365 = age_start365 + 1825
+  ) %>%
+  filter(
+    c_age365 > age_start365
+  )
+
+```
+
+```{r}
+#| warning: false
+#| echo: false
+
+source("GS_analysis/Script/TimeSplit_Menopause_2lag.R")
+source("GS_analysis/Script/TimeSplit_Menopause_5lag.R")
+source("GS_analysis/Script/TimeSplit_Menopause.R")
+```
+
+
+Full Cohort
+
+```{r}
+#| warning: false
+#| echo: false
+
+source("GS_analysis/Script/Point_Avg_CoxRegression.R")
+
+# No Time lagS
+#need air pollutant, time point, and time lag
+all_results <- rbind(
+  point_nolag_clean,
+  point_2lag_clean,
+  point_5lag_clean,
+  avg_nolag_clean,
+  avg_2lag_clean,
+  avg_5lag_clean
+)
+```
+
+
+By Menopausal status
+
+```{r}
+#| warning: false
+#| echo: false
+
+cohort_mensplit_5lag_changed <- cohort_mensplit_5lag %>%
+  mutate(
+    avgP25 = avgP25/5,
+    avgP10 = avgP10/5,
+    pointP25 = pointP25/5,
+    pointP10 = pointP10/5
+  )
+
+cohort_mensplit_2lag_changed <- cohort_mensplit_2lag %>%
+  mutate(
+    avgP25 = avgP25/5,
+    avgP10 = avgP10/5,
+    pointP25 = pointP25/5,
+    pointP10 = pointP10/5
+  )
+
+cohort_mensplit_nolag_changed <- cohort_mensplit %>%
+  mutate(
+    avgP25 = avgP25/5,
+    avgP10 = avgP10/5,
+    pointP25 = pointP25/5,
+    pointP10 = pointP10/5
+  )
+source("GS_analysis/Script/Menopause_applied_avg_5lag.R")
+source("GS_analysis/Script/Menopause_applied_avg_2lag.R")
+source("GS_analysis/Script/Menopause_applied_avg_nolag.R")
+
+source("GS_analysis/Script/Menopause_applied_5lag.R")
+source("GS_analysis/Script/Menopause_applied_2lag.R")
+source("GS_analysis/Script/Menopause_applied_nolag.R")
+
+all_menopause <- rbind(point_5lag, point_2lag, point_nolag,avg_5lag, avg_2lag, avg_nolag)
+```
+
+By ER Status
+
+```{r}
+#| warning: false
+#| echo: false
+
+# Using Lunn McNeil methods
+
+source("GS_analysis/Script/LunnMcNeil.R")
+source("GS_analysis/Script/LunnMcNeil_applied.R")
+```
+
+
+# Table 1: Data Description
+
+```{r}
+#| warning: false
+#| echo: false
+
+nolag <- covariate(complete_cohort, bc_nolag) %>%
+  mutate(
+    covariate = "Cohort: no time lag"
+  )
+twolag <- covariate(complete_cohort, bc_2lag)%>%
+  mutate(
+    covariate = "Cohort: 2 year time lag"
+  )
+fivelag <- covariate(complete_cohort, bc_5lag)%>%
+  mutate(
+    covariate = "Cohort: 5 year time lag"
+  )
+
+outcome <- bind_rows(nolag, twolag, fivelag) %>%
+  mutate(
+    Cases = case_when(
+      Subcategories == 0 ~ 0, 
+      TRUE ~ Cases
+    ),
+    `Rate per 1,000` = case_when(
+      Subcategories == 0 ~ 0, 
+      TRUE ~ `Rate per 1,000`
+    ), 
+    Subcategories = case_when(
+      Subcategories == 1 ~ "Case", 
+      Subcategories == 0 ~ "Not Case", 
+      TRUE ~ "ERROR"
+    )
+  )
+
+age <- covariate(complete_cohort, AgeEntry_cat)%>%
+  mutate(
+    covariate = "Age at study entry"
+  )
+yearofentry <- covariate(complete_cohort, matchyear_cat)%>%
+  mutate(
+    covariate = "Year of study entry"
+  )
+
+carstairs <- covariate(complete_cohort, Carstairs_cat)%>%
+  mutate(
+    covariate = "Carstairs index"
+  )
+bmi <- covariate(complete_cohort, BMI_cat)%>%
+  mutate(
+    covariate = "Body Mass Index (BMI)"
+  )
+smoking <- covariate(complete_cohort, Smoking_cat)%>%
+  mutate(
+    covariate = "Smoking"
+  )
+alcohol <- covariate(complete_cohort, Alcohol_cat)%>%
+  mutate(
+    covariate = "Alcohol"
+  )
+education <- covariate(complete_cohort, Educ_cat)%>%
+  mutate(
+    covariate = "Highest attained education"
+  )
+
+parity <- covariate(complete_cohort, Parity_cat)%>%
+  mutate(
+    covariate = "Parity"
+  )
+agefirstbirth <- covariate(complete_cohort, Birth1_age_cat)%>%
+  mutate(
+    covariate = "Age at first birth"
+  )
+HRT <- covariate(complete_cohort, HRT_cat)%>%
+  mutate(
+    covariate = "Hormone replacement therapy (HRT)"
+  )
+meno <- covariate(cohort_mensplit, Menopause_cat)%>%
+  mutate(
+    covariate = "Menopause", 
+    Subcategories = case_when(
+      is.na(Subcategories) ~ "Unknown", 
+      TRUE ~ Subcategories
+    )
+  )
+ER <- covariate(complete_cohort, ER_cat)%>%
+  mutate(
+    covariate = "Oestrogen Receptor (ER) status"
+  )
+
+
+
+table1 <- bind_rows(outcome,  meno, ER, age, yearofentry, carstairs, bmi, smoking, alcohol, education, parity, agefirstbirth, HRT) %>%
+  mutate(
+      Cases = paste0(format(Cases, big.mark = ",")),
+      `Person Years` = paste0(format(`Person Years`, big.mark = ","))
+  )
+
+table1_tbl <- table1 %>%
+    group_by(covariate) %>%
+    gt(rowname_col = NULL) %>%
+    # Center everything
+    cols_align(
+      align = "center",
+      columns = everything()
+    ) %>%
+    # Bold the column headers
+    tab_style(
+      style = cell_text(weight = "bold"),
+      locations = cells_column_labels()
+    ) %>%
+    # Style the group headers (time_lag)
+    tab_style(
+      style = list(
+        cell_text(weight = "bold"),
+        cell_fill(color = "lightgray"),
+        cell_borders(sides = "top"),
+        cell_borders(sides = "bottom")
+      ),
+      locations = cells_row_groups(groups = everything())
+    ) %>%
+    # Add title
+    tab_header(
+      title = "Table 1: Generations Study Cohort Data Description")
+    
+
+table1_tbl
+
+```
+
+Cohort Specifications
+
+```{r}
+
+# set the covariates per model 
+covarA <- c("matchyear_cat")
+covarB <- c("matchyear_cat", "BMI","Carstairs_cat","Smoking_cat","Alcohol_cat", "Educ_cat")
+covarC <- c("matchyear_cat","BMI", "Carstairs_cat","Smoking_cat","Alcohol_cat", "Educ_cat", "Parity_cat", "Birth1_age_cat", "HRT_cat", "menobandf")
+```
+
+
+# Figure 2: Generations Study
+## Panel A: Primary Outcome
+
+```{r}
+#| label: Figure 2 pan A
+#| fig-align: center
+#| fig-width: 10
+#| fig-height: 8
+#| warning: false
+#| echo: false
+
+average_nolag_plot <- full_cohort_plot(all_results, lag_value = "nolag", exp_def = "average")
+
+average_nolag_plot  + plot_annotation(
+    title = "Particulate Matter Exposure and Breast Cancer Incidence",
+     subtitle = "All hazard ratios calculated per 5 ug/m3 of exposure",
+  caption = str_wrap(
+    "Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)",
+    width = 100  # adjust this number to fit your plot
+  ), 
+    theme = theme(
+      plot.title = element_text(size = 22, hjust = 0.5), 
+      plot.subtitle = element_text(size = 20, hjust = 0.5),
+      plot.caption = element_text(size = 15, hjust = 0))
+  )
+```
+
+## Panel B : By Menopausal Status
+
+```{r}
+#| label: Figure 2 pan B
+#| fig-align: center
+#| fig-width: 17
+#| fig-height: 8
+#| warning: false
+#| echo: false
+
+menopause_plot <- subanalysis_plot(
+                            all_menopause,
+                            type = "Menopausal Status",
+                            lag_choice = "no years",
+                            exp_choice = "average")
+
+menopause_plot +
+    plot_annotation(
+    title = "Particulate Matter Exposure and Breast Cancer Incidence By Menopausal Status",
+     subtitle = "All hazard ratios calculated per 5 ug/m3 of exposure",
+  caption = str_wrap(
+    "Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)",
+    width = 175  # adjust this number to fit your plot
+  ), 
+    theme = theme(
+      plot.title = element_text(size = 22, hjust = 0.5), 
+      plot.subtitle = element_text(size = 20, hjust = 0.5),
+      plot.caption = element_text(size = 15, hjust = 0))
+  )
+```
+
+
+## Panel C: By ER Status
+
+```{r}
+#| label: Figure 2 pan C
+#| fig-align: center
+#| fig-width: 17
+#| fig-height: 8
+#| warning: false
+#| echo: false
+
+er_plot <- subanalysis_plot(lunnmcneil_results,
+                            type = "ER Status",
+                            lag_choice = "no years",
+                            exp_choice = "average")
+
+er_plot +   
+  plot_annotation(
+    title = "Particulate Matter Exposure and Breast Cancer Incidence By ER Status",
+     subtitle = "All hazard ratios calculated per 5 ug/m3 of exposure",
+  caption = str_wrap(
+    "Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)",
+    width = 175  # adjust this number to fit your plot
+  ), 
+    theme = theme(
+      plot.title = element_text(size = 22, hjust = 0.5), 
+      plot.subtitle = element_text(size = 20, hjust = 0.5),
+      plot.caption = element_text(size = 15, hjust = 0))
+  )
+
+
+```
+
+
+# Supplementary Figure 1 : Sensitivity Full Cohort
+
+
+```{r}
+#| label: Supp Fig 1
+#| fig-align: center
+#| fig-width: 20
+#| fig-height: 8
+#| warning: false
+#| echo: false
+point_nolag_plot <- full_cohort_plot(all_results, lag_value = "nolag", exp_def = "point", plot_title = "Point Exposure")
+
+average_2lag_plot <- full_cohort_plot(all_results, lag_value = "2lag", exp_def = "average", plot_title = "2 year time lag")
+
+average_5lag_plot <- full_cohort_plot(all_results, lag_value = "5lag", exp_def = "average", plot_title = "5 year time lag")
+
+point_nolag_plot + average_2lag_plot +average_5lag_plot +   
+  plot_annotation(
+    title = "Sensitivity Analysis: Particulate Matter Exposure and Breast Cancer Incidence",
+     subtitle = "All hazard ratios calculated per 5 ug/m3 of exposure",
+  caption = str_wrap(
+    "Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)",
+    width = 150  # adjust this number to fit your plot
+  ), 
+    theme = theme(
+      plot.title = element_text(size = 28, hjust = 0.5), 
+      plot.subtitle = element_text(size = 25, hjust = 0.5),
+      plot.caption = element_text(size = 20, hjust = 0))
+  )
+```
+
+
+
+
+
+
+# Supplementary Table 3: Primary Analysis
+
+```{r}
+
+#| label: Supp Table 3
+#| fig-align: center
+#| fig-width: 25
+#| fig-height: 20
+#| warning: false
+#| echo: false
+
+full_cohort <- full_cohort_table(all_results, table_title = "Full Cohort analysis: Primary and Sensitivity Analysis")
+
+full_cohort
+```
+
+# Supplementary Table 4: Menopausal Status Tables
+
+
+```{r}
+#| label: Supp Table 4 pan A
+#| fig-align: center
+#| fig-width: 20
+#| fig-height: 20
+#| warning: false
+#| echo: false
+
+menopausal_table <- subanalysis_table(
+  all_menopause,
+  type = "Menopausal Status",
+  lag_choice = "no years",
+  exp_choice = "average")
+
+menopausal_table
+```
+
+
+# Supplementary Table 5: ER Status Table
+
+```{r}
+#| label: Supp Table 5 pan A
+#| fig-align: center
+#| fig-width: 20
+#| fig-height: 20
+#| warning: false
+#| echo: false
+
+erstatus_all_table <- subanalysis_table(
+  lunnmcneil_results,
+  type = "ER Status",
+  lag_choice = "no years",
+  exp_choice = "average")
+
+erstatus_all_table
+```
+
+
+# Extra
+
+## Sensitivity Anyalysis by Menopausal Status
+
+```{r}
+#| label: Supp Fig 2
+#| fig-align: center
+#| fig-width: 20
+#| fig-height: 20
+#| warning: false
+#| echo: false
+#| 
+point_menopause_plot <- subanalysis_plot(
+                            all_menopause,
+                            type = "Menopausal Status",
+                            lag_choice = "no years",
+                            exp_choice = "point")
+
+lag2_menopause_plot <- subanalysis_plot(
+                            all_menopause,
+                            type = "Menopausal Status",
+                            lag_choice = "2 years",
+                            exp_choice = "average")
+
+
+lag5_menopause_plot <- subanalysis_plot(
+                            all_menopause,
+                            type = "Menopausal Status",
+                            lag_choice = "5 years",
+                            exp_choice = "average")
+
+
+
+point_row <- wrap_elements(
+  (point_menopause_plot) +
+    plot_layout(ncol = 1) +
+    plot_annotation(title = "Point Exposure", theme = theme(plot.title = element_text(size = 25)))
+)
+
+lag2_row <- wrap_elements(
+  (lag2_menopause_plot) +
+    plot_layout(ncol = 1) +
+    plot_annotation(title = "2-year lag", theme = theme(plot.title = element_text(size = 25)))
+)
+
+lag5_row <- wrap_elements(
+  (lag5_menopause_plot) +
+    plot_layout(ncol = 1) +
+    plot_annotation(title = "5-year lag", theme = theme(plot.title = element_text(size = 25)))
+)
+
+(point_row / lag2_row / lag5_row) +
+  plot_annotation(
+    title = "Sensitivity Analysis: Particulate Matter Exposure and Breast Cancer Incidence By Menopausal Status",
+     subtitle = "All hazard ratios calculated per 5 ug/m3 of exposure",
+  caption = str_wrap(
+    "Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)",
+    width = 150  # adjust this number to fit your plot
+  ), 
+    theme = theme(
+      plot.title = element_text(size = 28, hjust = 0.5), 
+      plot.subtitle = element_text(size = 25, hjust = 0.5),
+      plot.caption = element_text(size = 20, hjust = 0))
+  )
+```
+
+
+
+## Sensitivity Anyalysis by ER Status
+
+```{r}
+#| label: Supp Fig 3
+#| fig-align: center
+#| fig-width: 20
+#| fig-height: 20
+#| warning: false
+#| echo: false
+#| 
+point_erstatus <- subanalysis_plot(lunnmcneil_results,
+                            type = "ER Status",
+                            lag_choice = "no years",
+                            exp_choice = "point")
+
+lag2_erstatus <- subanalysis_plot(lunnmcneil_results,
+                            type = "ER Status",
+                            lag_choice = "2 years",
+                            exp_choice = "average")
+
+
+lag5_erstatus <- subanalysis_plot(lunnmcneil_results,
+                            type = "ER Status",
+                            lag_choice = "5 years",
+                            exp_choice = "average")
+
+
+point_row <- wrap_elements(
+  (point_erstatus) +
+    plot_layout(ncol = 1) +
+    plot_annotation(title = "Point Exposure", theme = theme(plot.title = element_text(size = 25)))
+)
+
+lag2_row <- wrap_elements(
+  (lag2_erstatus) +
+    plot_layout(ncol = 1) +
+    plot_annotation(title = "2-year lag", theme = theme(plot.title = element_text(size = 25)))
+)
+
+lag5_row <- wrap_elements(
+  (lag5_erstatus) +
+    plot_layout(ncol = 1) +
+    plot_annotation(title = "5-year lag", theme = theme(plot.title = element_text(size = 25)))
+)
+
+(point_row / lag2_row / lag5_row) +
+  plot_annotation(
+    title = "Sensitivity Analysis: Particulate Matter Exposure and Breast Cancer Incidence By ER Status",
+     subtitle = "All hazard ratios calculated per 5 ug/m3 of exposure",
+  caption = str_wrap(
+    "Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)",
+    width = 150  # adjust this number to fit your plot
+  ), 
+    theme = theme(
+      plot.title = element_text(size = 28, hjust = 0.5), 
+      plot.subtitle = element_text(size = 25, hjust = 0.5),
+      plot.caption = element_text(size = 20, hjust = 0))
+  )
+
+
+```
+
+
+
+## E-Values
+```{r}
+source("GS_analysis/Script/BiasAssessment.R")
+
+all_evalues
+```
+
+## Proportional Hazards
+```{r}
+fullcohort <- proportionalhazards(complete_cohort, cohort_mensplit)
+fullcohort %>%
+separate(model, into = c("Pollutant", "Model"), sep = "_") %>%
+  gt(rowname_col = "Pollutant") %>%
+  cols_label(Model = "Category")%>%
+  tab_header(
+    title = "Full Cohort Proportional Hazards"
+  )
+
+premen <- cohort_mensplit %>%
+  filter(
+    menobandf == "premenopausal"
+  )
+premen_ph <- proportionalhazards(premen, premen)
+premen_ph %>%
+separate(model, into = c("Pollutant", "Model"), sep = "_") %>%
+  gt(rowname_col = "Pollutant") %>%
+  cols_label(Model = "Category")%>%
+  tab_header(
+    title = "Premenopausal Proportional Hazards"
+  )
+
+postmen <- cohort_mensplit %>%
+  filter(
+    menobandf == "postmenopausal"
+  )
+postmen_ph <- proportionalhazards(postmen, postmen)
+postmen_ph %>%
+separate(model, into = c("Pollutant", "Model"), sep = "_") %>%
+  gt(rowname_col = "Pollutant") %>%
+  cols_label(Model = "Category")%>%
+  tab_header(
+    title = "Postmenopausal Proportional Hazards"
+  )
+```
+
+## Bias Quantification
+### Static
+```{r}
+#| warning: false
+#| echo: false
+source("GS_analysis/Script/QuantifyingBias.R")
+# PM10
+beta   <- P10_C$coefficients["I(avgP10/5)"]
+se     <- sqrt(vcov(P10_C)["I(avgP10/5)", "I(avgP10/5)"])
+
+quantifybias_P10 <- measurementerror_quantification(beta, se)
+
+# PM2.5
+beta   <- P25_C$coefficients["I(avgP25/5)"]
+se     <- sqrt(vcov(P25_C)["I(avgP25/5)", "I(avgP25/5)"])
+quantifybias_P25 <- measurementerror_quantification(beta, se)
+
+source("GS_analysis/Script/SensitivityAnalysis_DataClean.R")
+
+```
+#### PM 10
+```{r}
+
+quantifybias_P10$biasresults_static %>%
+  gt(groupname_col = "adjustment")%>%
+  tab_header(
+    title = "Bias Adjustment: PM10 fully adjusted models"
+  )
+
+```
+#### PM 2.5
+```{r}
+quantifybias_P25$biasresults_static %>%
+  gt(groupname_col = "adjustment")%>%
+  tab_header(
+    title = "Bias Adjustment: PM2.5 fully adjusted models"
+  )
+
+```
+
+### Probabilistic
+
+#### PM10
+```{r}
+
+probbias_P10 <- rbind(quantifybias_P10$biasresults_probablistic, HouseholdOnly_P10)
+
+probbias_P10 %>%
+  gt(groupname_col = "Bias Adjustment")%>%
+  tab_header(
+    title = "Probablistic Bias Adjustment: PM10 fully adjusted models"
+  )
+
+quantifybias_P10$biasresults_probablistic_graph
+```
+
+#### PM 2.5
+```{r}
+
+probbias_P25 <- rbind(quantifybias_P25$biasresults_probablistic, HouseholdOnly_P25)
+
+probbias_P25 %>%
+  gt(groupname_col = "Bias Adjustment")%>%
+  tab_header(
+    title = "Probablistic Bias Adjustment: PM2.5 fully adjusted models"
+  )
+
+quantifybias_P25$biasresults_probablistic_graph
+```
+
+### Covariates
+
+### No moving 
+```{r}
+sensitivity_nomove <- rbind(NoMoves_P10, NoMoves_P25)
+
+sensitivity_nomove %>%
+  gt(groupname_col = "Bias Adjustment")%>%
+  tab_header(
+    title = "Probablistic Bias Adjustment: PM2.5 fully adjusted models"
+  )
+```
