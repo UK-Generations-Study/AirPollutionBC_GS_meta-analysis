@@ -78,9 +78,13 @@ sensitivity_data_clean <- function(GS_data, AirPollution_data) {
   return(data_cleaned)
 }
 
-data_prep <- function(data, title = "UNDEFINED"){
+data_prep <- function(data, title = "UNDEFINED",redefined = F, lag = "none", exposure = "average"){
+
   data_clean <- as.data.frame(data)
+  
+  if(redefined == T){
   complete_cohort <- cleanexposure(data_clean, clean_covariates)
+  }
   
   complete_cohort <- complete_cohort %>%
     filter(
@@ -92,6 +96,8 @@ data_prep <- function(data, title = "UNDEFINED"){
     mutate(
       meno_age_est = as.numeric(meno_age_est)
     ) 
+  
+  if(lag == "none") {
   
   # Menopausal time split
   cohort_mensplit <- complete_cohort %>% 
@@ -137,8 +143,101 @@ data_prep <- function(data, title = "UNDEFINED"){
       p_years = interval_days / 365, 
       followup_year = floor((tstart - age_start365) / 365)
     )
+  } else if(lag == "2 lag") {
+    # Menopausal time split
+    cohort_mensplit <- complete_cohort_2lag %>% 
+      mutate(
+        # turn to age in days (no leap years) -- missing becomes 51 * 365
+        # add 182 days
+        age_meno365 = ifelse((meno_age_est > 12) & (meno_age_est < 60),
+                             (meno_age_est * 365) + 182,
+                             (51 * 365) + 182),
+        # if reason for menopause is related to breast cancer treatment then
+        # push age up by one year so it comes after cancer
+        # i.e. after censoring, so remains premenopausal at censoring/diagnosis
+        # regardless of how much was added on
+        age_meno365 = ifelse((event == 1) &
+                               (trunc(age_meno365 / 365) ==
+                                  trunc(c_age365 / 365)) &
+                               (meno_reason %in% c(2, 5)),
+                             #                               (meno_reason %in% c(2, 3, 4, 5, 6)),
+                             age_meno365 + (365 * 1),
+                             age_meno365)
+      )
+    
+    # Setting up the base cohort split
+    cohort_mensplit <- tmerge(data1 = cohort_mensplit, data2 = cohort_mensplit,
+                              id = TCode, tstart = age_start365, tstop = c_age365,
+                              outcome = event(c_age365, event))
+    
+    # Splitting the cohort by menopause
+    times <- cohort_mensplit[, c("TCode", "age_meno365")]
+    cohort_mensplit <- tmerge(data1 = cohort_mensplit, data2 = times,
+                              id = TCode, menoband = tdc(age_meno365))
+    
+    # Adding menopausal labels
+    meno_labels <- c("premenopausal", "postmenopausal")
+    cohort_mensplit$menobandf <- factor(cohort_mensplit$menoband,
+                                        levels = 0:1,
+                                        labels = meno_labels)
+    
+    # Adjusting follow up time for each row
+    cohort_mensplit <- cohort_mensplit %>%
+      mutate(
+        interval_days = tstop - tstart,
+        p_years = interval_days / 365, 
+        followup_year = floor((tstart - age_start365) / 365)
+      )
+  }else if(lag == "5 lag") {
+    # Menopausal time split
+    cohort_mensplit <- complete_cohort_5lag %>% 
+      mutate(
+        # turn to age in days (no leap years) -- missing becomes 51 * 365
+        # add 182 days
+        age_meno365 = ifelse((meno_age_est > 12) & (meno_age_est < 60),
+                             (meno_age_est * 365) + 182,
+                             (51 * 365) + 182),
+        # if reason for menopause is related to breast cancer treatment then
+        # push age up by one year so it comes after cancer
+        # i.e. after censoring, so remains premenopausal at censoring/diagnosis
+        # regardless of how much was added on
+        age_meno365 = ifelse((event == 1) &
+                               (trunc(age_meno365 / 365) ==
+                                  trunc(c_age365 / 365)) &
+                               (meno_reason %in% c(2, 5)),
+                             #                               (meno_reason %in% c(2, 3, 4, 5, 6)),
+                             age_meno365 + (365 * 1),
+                             age_meno365)
+      )
+    
+    # Setting up the base cohort split
+    cohort_mensplit <- tmerge(data1 = cohort_mensplit, data2 = cohort_mensplit,
+                              id = TCode, tstart = age_start365, tstop = c_age365,
+                              outcome = event(c_age365, event))
+    
+    # Splitting the cohort by menopause
+    times <- cohort_mensplit[, c("TCode", "age_meno365")]
+    cohort_mensplit <- tmerge(data1 = cohort_mensplit, data2 = times,
+                              id = TCode, menoband = tdc(age_meno365))
+    
+    # Adding menopausal labels
+    meno_labels <- c("premenopausal", "postmenopausal")
+    cohort_mensplit$menobandf <- factor(cohort_mensplit$menoband,
+                                        levels = 0:1,
+                                        labels = meno_labels)
+    
+    # Adjusting follow up time for each row
+    cohort_mensplit <- cohort_mensplit %>%
+      mutate(
+        interval_days = tstop - tstart,
+        p_years = interval_days / 365, 
+        followup_year = floor((tstart - age_start365) / 365)
+      )
+  } else {
+    stop("options are: none, 2 lag, 5 lag")
+  }
   
-  
+  if (exposure == "average"){
   P10_C <- coxph(
     Surv(tstart, tstop, outcome) ~ I(avgP10 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
     data = cohort_mensplit
@@ -147,6 +246,18 @@ data_prep <- function(data, title = "UNDEFINED"){
     Surv(tstart, tstop, outcome) ~ I(avgP25 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
     data = cohort_mensplit
   )
+  } else if (exposure == "point") {
+    P10_C <- coxph(
+      Surv(tstart, tstop, outcome) ~ I(pointP10 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+      data = cohort_mensplit
+    )
+    P25_C <- coxph(
+      Surv(tstart, tstop, outcome) ~ I(pointP25 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+      data = cohort_mensplit
+    )
+  } else{
+    stop("options are: average, point")
+  }
   
   P10_sensitivity <- extract_cox(P10_C, "P10_C", "P10") %>%
     mutate(
@@ -251,6 +362,10 @@ sensitivity_covariate <- function(covariate, title = "NOT DEFINED") {
   )
 }
 
+
+# Sensitivity Analysis: 
+
+
 sensitivity_matchyear <- sensitivity_covariate("matchyear_cat", "Year of Study Entry")
 sensitivity_BMI <- sensitivity_covariate("BMI", "BMI")
 sensitivity_Carstairs <- sensitivity_covariate("Carstairs_cat", "Carstairs Index")
@@ -264,9 +379,17 @@ sensitivity_Meno <- sensitivity_covariate("menobandf", "Menopause")
 
 ## ONLY HOUSEHOLD ADDRESSES
 clean_onlyHH_GS <- sensitivity_data_clean(onlyHH_GS, data_ap)
-sensitivity_household <- data_prep(clean_onlyHH_GS, "Addresses at the Household Level Only")
+sensitivity_household <- data_prep(clean_onlyHH_GS, "Addresses at the Household Level Only", redefined = T)
 
 ## ONLY PARTICIPANTS WHO DID NOT MOVE
 clean_nomove_GS <- sensitivity_data_clean(nomove_GS, data_ap)
-sensitivity_nomove <- data_prep(clean_nomove_GS, "Participants who did not move Only")
+sensitivity_nomove <- data_prep(clean_nomove_GS, "Participants who did not move Only", redefined = T)
 
+## Point Exposure
+sensitivity_point <- data_prep(complete_cohort, "Point Exposure", exposure = "point")
+
+## 2 lag
+sensitivity_2lag <- data_prep(complete_cohort, "2 year time lag", lag = "2 lag")
+
+## 5 lag
+sensitivity_5lag <- data_prep(complete_cohort, "5 year time lag", lag = "5 lag")

@@ -6,151 +6,26 @@
 # Building the data frames :
 
 ###################################################################
-# Building the dataset for A and B models
-AB_data <- complete_cohort %>%
-  mutate(
-    er_Status = factor(er_Status, levels = c("Positive", "Negative", "Unknown"))
-    )
-#############################
-# No lag time
-positive <- AB_data %>%
-  mutate(
-    bc_nolag = case_when(
-      bc_nolag == 1 & er_Status == "Positive" ~ 1, 
-      TRUE ~ 0
-    ),
-    type = "pos"
-  )
-
-negative <- AB_data %>%
-  mutate(
-    bc_nolag = case_when(
-      bc_nolag == 1 & er_Status == "Negative" ~ 1, 
-      TRUE ~ 0
-    ),
-    type = "neg"
-  )
-
-unknown <- AB_data %>%
-  mutate(
-    bc_nolag = case_when(
-      bc_nolag == 1 & er_Status == "Unknown" ~ 1, 
-      TRUE ~ 0
-    ),
-    type = "unk"
-  )
-AB_lm_nolag <- rbind(positive, negative, unknown)
-AB_lm_nolag <- AB_lm_nolag %>%
-  mutate(
-    type = factor(type, levels = c("pos", "neg", "unk")),
-    pointNO2 = pointNO2/10,
-    pointP25 = pointP25/5, 
-    pointP10 = pointP10/5, 
-    avgNO2 = avgNO2/10,
-    avgP25 = avgP25/5, 
-    avgP10 = avgP10/5
-    )
-
-#############################
-# 2 lag time
-positive <- AB_data %>%
-  mutate(
-    bc_nolag = case_when(
-      bc_2lag == 1 & er_Status == "Positive" ~ 1, 
-      TRUE ~ 0
-    ),
-    type = "pos"
-  )
-
-negative <- AB_data %>%
-  mutate(
-    bc_nolag = case_when(
-      bc_2lag == 1 & er_Status == "Negative" ~ 1, 
-      TRUE ~ 0
-    ),
-    type = "neg"
-  )
-
-unknown <- AB_data %>%
-  mutate(
-    bc_nolag = case_when(
-      bc_2lag == 1 & er_Status == "Unknown" ~ 1, 
-      TRUE ~ 0
-    ),
-    type = "unk"
-  )
-AB_lm_2lag <- rbind(positive, negative, unknown)
-AB_lm_2lag <- AB_lm_2lag %>%
-  mutate(
-    type = factor(type, levels = c("pos", "neg", "unk")),
-    pointNO2 = pointNO2/10,
-    pointP25 = pointP25/5, 
-    pointP10 = pointP10/5, 
-    avgNO2 = avgNO2/10,
-    avgP25 = avgP25/5, 
-    avgP10 = avgP10/5
-  )
-
-#############################
-# 5 lag time
-positive <- AB_data %>%
-  mutate(
-    bc_nolag = case_when(
-      bc_5lag == 1 & er_Status == "Positive" ~ 1, 
-      TRUE ~ 0
-    ),
-    type = "pos"
-  )
-
-negative <- AB_data %>%
-  mutate(
-    bc_nolag = case_when(
-      bc_5lag == 1 & er_Status == "Negative" ~ 1, 
-      TRUE ~ 0
-    ),
-    type = "neg"
-  )
-
-unknown <- AB_data %>%
-  mutate(
-    bc_nolag = case_when(
-      bc_5lag == 1 & er_Status == "Unknown" ~ 1, 
-      TRUE ~ 0
-    ),
-    type = "unk"
-  )
-AB_lm_5lag <- rbind(positive, negative, unknown)
-AB_lm_5lag <- AB_lm_5lag %>%
-  mutate(
-    type = factor(type, levels = c("pos", "neg", "unk")),
-    pointNO2 = pointNO2/10,
-    pointP25 = pointP25/5, 
-    pointP10 = pointP10/5, 
-    avgNO2 = avgNO2/10,
-    avgP25 = avgP25/5, 
-    avgP10 = avgP10/5
-  )
-
-###################################################################
 
 # Building for model C
 
 C_data_nolag <- cohort_mensplit %>%
   mutate(
-    er_Status = factor(er_Status, levels = c("Positive", "Negative", "Unknown"))
+    er_Status = factor(event_er,
+                levels = c(0, 1, 2, 3),
+                labels = c("Nonevent", "Positive", "Negative", "Unknown")),
+    
+    screen = factor(screen_detected,
+                    levels = c(0, 1, 2, 3),
+                    labels = c("Nonevent", "Yes", "No", "Unknown")),
+    
+    invdcis = factor(inv_dcis,
+                     levels = c(0, 1, 2, 3),
+                     labels = c("Nonevent", "Invasive", "DCIS", "Unknown"))
   )
 
-C_data_2lag <- cohort_mensplit_2lag %>%
-  mutate(
-    er_Status = factor(er_Status, levels = c("Positive", "Negative", "Unknown"))
-  )
-
-C_data_5lag <- cohort_mensplit_5lag %>%
-  mutate(
-    er_Status = factor(er_Status, levels = c("Positive", "Negative", "Unknown"))
-  )
 #############################
-# No lag time
+# ER status
 positive <- C_data_nolag %>%
   mutate(
     bc_nolag = case_when(
@@ -177,99 +52,89 @@ unknown <- C_data_nolag %>%
     ),
     type = "unk"
   )
-C_lm_nolag <- rbind(positive, negative, unknown)
-C_lm_nolag <- C_lm_nolag %>%
+er_status <- rbind(positive, negative, unknown)
+er_status <- er_status %>%
   mutate(
     type = factor(type, levels = c("pos", "neg", "unk")),
-    pointNO2 = pointNO2/10,
-    pointP25 = pointP25/5, 
-    pointP10 = pointP10/5, 
     avgNO2 = avgNO2/10,
     avgP25 = avgP25/5, 
     avgP10 = avgP10/5
   )
 
-#############################
-# 2 lag time
-positive <- C_data_2lag %>%
+
+# Screen detected status
+yesscreen <- C_data_nolag %>%
   mutate(
     bc_nolag = case_when(
-      outcome == 1 & er_Status == "Positive" ~ 1, 
+      outcome == 1 & screen == "Yes" ~ 1, 
       TRUE ~ 0
     ),
-    type = "pos"
+    type = "screen"
   )
 
-negative <- C_data_2lag %>%
+noscreen <- C_data_nolag %>%
   mutate(
     bc_nolag = case_when(
-      outcome == 1 & er_Status == "Negative" ~ 1, 
+      outcome == 1 & screen == "No" ~ 1, 
       TRUE ~ 0
     ),
-    type = "neg"
+    type = "noscreen"
   )
 
-unknown <- C_data_2lag %>%
+
+unknown <- C_data_nolag %>%
   mutate(
     bc_nolag = case_when(
-      outcome == 1 & er_Status == "Unknown" ~ 1, 
+      outcome == 1 & screen == "Unknown" ~ 1, 
       TRUE ~ 0
     ),
     type = "unk"
   )
-C_lm_2lag <- rbind(positive, negative, unknown)
-C_lm_2lag <- C_lm_2lag %>%
+screened <- rbind(yesscreen, noscreen, unknown)
+screened <- screened %>%
   mutate(
-    type = factor(type, levels = c("pos", "neg", "unk")),
-    pointNO2 = pointNO2/10,
-    pointP25 = pointP25/5, 
-    pointP10 = pointP10/5, 
+    type = factor(type, levels = c("screen", "noscreen", "unk")),
     avgNO2 = avgNO2/10,
     avgP25 = avgP25/5, 
     avgP10 = avgP10/5
   )
 
-#############################
-# 5 lag time
-positive <- C_data_5lag %>%
+
+# DCIS vs Invasive
+invasive <- C_data_nolag %>%
   mutate(
     bc_nolag = case_when(
-      outcome == 1 & er_Status == "Positive" ~ 1, 
+      outcome == 1 & invdcis == "Invasive" ~ 1, 
       TRUE ~ 0
     ),
-    type = "pos"
+    type = "invasive"
   )
 
-negative <- C_data_5lag %>%
+dcis <- C_data_nolag %>%
   mutate(
     bc_nolag = case_when(
-      outcome == 1 & er_Status == "Negative" ~ 1, 
+      outcome == 1 & invdcis == "DCIS" ~ 1, 
       TRUE ~ 0
     ),
-    type = "neg"
+    type = "dcis"
   )
 
-unknown <- C_data_5lag %>%
+unknown <- C_data_nolag %>%
   mutate(
     bc_nolag = case_when(
-      outcome == 1 & er_Status == "Unknown" ~ 1, 
+      outcome == 1 & invdcis == "Unknown" ~ 1, 
       TRUE ~ 0
     ),
     type = "unk"
   )
-C_lm_5lag <- rbind(positive, negative, unknown)
-C_lm_5lag <- C_lm_5lag %>%
+invdcis_data <- rbind(invasive, dcis, unknown)
+invdcis_data <- invdcis_data %>%
   mutate(
-    type = factor(type, levels = c("pos", "neg", "unk")),
-    pointNO2 = pointNO2/10,
-    pointP25 = pointP25/5, 
-    pointP10 = pointP10/5, 
+    type = factor(type, levels = c("invasive", "dcis", "unk")),
     avgNO2 = avgNO2/10,
     avgP25 = avgP25/5, 
     avgP10 = avgP10/5
   )
-
-
 ###################################################################
 
 # Function to take out the HR, CI, and Wald values from the model
@@ -277,26 +142,20 @@ extract_lm_hr <- function(cox_fit, exposure_var, subtype_levels = c("pos", "neg"
   
   model_name <- deparse(substitute(cox_fit))
   
-  # Extract coefficients and variance-covariance matrix
   coefs <- coef(cox_fit)
   vcov_mat <- vcov(cox_fit)
   
-  # Check if main exposure exists
   if (!(exposure_var %in% names(coefs))) {
     stop(paste0("Exposure variable '", exposure_var, "' not found in model coefficients"))
   }
   
-  # Main effect for reference subtype (first in subtype_levels)
   b_main <- coefs[exposure_var]
   
-  # Find interaction terms
   interaction_terms <- grep(paste0("^", exposure_var, ":"), names(coefs), value = TRUE)
   
-  # Initialize betas
   beta <- setNames(rep(0, length(subtype_levels)), subtype_levels)
   beta[subtype_levels[1]] <- b_main
   
-  # Assign interaction betas
   for (term in interaction_terms) {
     for (subtype in subtype_levels[-1]) {
       if (grepl(subtype, term)) {
@@ -305,7 +164,6 @@ extract_lm_hr <- function(cox_fit, exposure_var, subtype_levels = c("pos", "neg"
     }
   }
   
-  # Calculate standard errors
   se <- setNames(rep(NA, length(subtype_levels)), subtype_levels)
   se[subtype_levels[1]] <- sqrt(vcov_mat[exposure_var, exposure_var])
   
@@ -321,19 +179,18 @@ extract_lm_hr <- function(cox_fit, exposure_var, subtype_levels = c("pos", "neg"
     }
   }
   
-  # === Wald test for pos vs neg only ===
-  wald_pval_pos_neg <- NA
-  neg_term <- interaction_terms[grepl("neg", interaction_terms)]
+  # === Wald test: subtype_levels[1] vs subtype_levels[2] only ===
+  wald_pval <- NA
+  subtype2_term <- interaction_terms[grepl(subtype_levels[2], interaction_terms)]  
   
-  if (length(neg_term) == 1) {
-    beta_diff <- coefs[neg_term]       # difference between pos and neg
-    var_diff  <- vcov_mat[neg_term, neg_term]
+  if (length(subtype2_term) == 1) {
+    beta_diff <- coefs[subtype2_term]
+    var_diff  <- vcov_mat[subtype2_term, subtype2_term]
     
     wald_stat <- (beta_diff^2) / var_diff
-    wald_pval_pos_neg <- pchisq(wald_stat, df = 1, lower.tail = FALSE)
+    wald_pval <- pchisq(wald_stat, df = 1, lower.tail = FALSE)
   }
   
-  # Build results table
   result <- data.frame(
     Model = model_name,
     Subtype = subtype_levels,
@@ -341,10 +198,10 @@ extract_lm_hr <- function(cox_fit, exposure_var, subtype_levels = c("pos", "neg"
     CI_lower = exp(beta - 1.96 * se),
     CI_upper = exp(beta + 1.96 * se),
     Pval = 2 * pnorm(abs(beta / se), lower.tail = FALSE),
-    Wald_pval = rep(wald_pval_pos_neg, length(subtype_levels))
+    Wald_pval = rep(wald_pval, length(subtype_levels))
   )
   
-  result_clean <- result %>%
+  result %>%
     mutate(
       HR = round(HR, 2),
       CI_lower = round(CI_lower, 2),
@@ -353,5 +210,5 @@ extract_lm_hr <- function(cox_fit, exposure_var, subtype_levels = c("pos", "neg"
       Wald_pval = round(Wald_pval, 3)
     )
   
-  return(result_clean)
+  return(result)
 }
