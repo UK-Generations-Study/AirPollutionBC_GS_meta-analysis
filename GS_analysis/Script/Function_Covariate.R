@@ -11,40 +11,6 @@ covariate <- function(dataset, covar) {
   covar_sym <- ensym(covar)              
   covar_label <- as_string(covar_sym) 
   
-  # Boxplot of avg_NO2 by covariate
-  NO2_avg <- ggplot(dataset, aes(x = {{ covar }}, y = avgNO2)) +
-    geom_boxplot(na.rm = TRUE,fill = "steelblue") +
-    labs(title = "NO2",
-         x = covar_label,
-         y = "NO2 (µg/m³)") +
-    theme_minimal()+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  
-  # Boxplot of avg_PM25 by covariate
-  PM25_avg <- ggplot(dataset, aes(x = {{ covar }}, y = avgP25)) +
-    geom_boxplot(na.rm = TRUE,fill = "steelblue") +
-    labs(title = "PM2.5",
-         x = covar_label,
-         y = "PM2.5 (µg/m³)") +
-    theme_minimal()+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  
-  
-  # Boxplot of avg_PM10 by covariate
-  PM10_avg <- ggplot(dataset, aes(x = {{ covar }}, y = avgP10)) +
-    geom_boxplot(na.rm = TRUE,fill = "steelblue") +
-    labs(title = "PM10",
-         x = covar_label,
-         y = "PM10 (µg/m³)") +
-    theme_minimal()+
-    theme(axis.text.x = element_text(angle = 45, hjust = 1))
-  
-  # Print the plots out in one plot
-  cum_plot <- NO2_avg + PM25_avg + PM10_avg + 
-    plot_annotation(
-      title = "Cummulative Avg Air Pollutants by Covariate",
-    )
-  # print(cum_plot)
   
    covariate_name <- deparse(substitute(covar))
   
@@ -56,8 +22,6 @@ covariate <- function(dataset, covar) {
       Cases = sum(bc_nolag),
       `Person Years` = sum(p_years),
       `Rate per 1,000` = (Cases/`Person Years`) * 1000,
-      mean_NO2   = mean(avgNO2, na.rm = TRUE),
-      sd_NO2     = sd(avgNO2, na.rm = TRUE),
       mean_PM25  = mean(avgP25, na.rm = TRUE),
       sd_PM25    = sd(avgP25, na.rm = TRUE),
       mean_PM10  = mean(avgP10, na.rm = TRUE),
@@ -78,21 +42,12 @@ covariate <- function(dataset, covar) {
       `Person Years` = round(`Person Years`, 2),
       `Rate per 1,000` = round(`Rate per 1,000`, 2), 
       
-      mean_NO2 = round(mean_NO2, 2), 
-      sd_NO2 = round(sd_NO2, 2), 
-      
       mean_PM25 = round(mean_PM25, 2), 
       sd_PM25 = round(sd_PM25, 2), 
       
       mean_PM10 = round(mean_PM10, 2), 
       sd_PM10 = round(sd_PM10, 2), 
       
-      `NO2(SD)` = paste0(
-        round(mean_NO2, 2),
-        " (",
-        round(sd_NO2, 2),
-        ")"
-      ),
       
       `PM2.5(SD)` = paste0(
         round(mean_PM25, 2),
@@ -115,7 +70,6 @@ covariate <- function(dataset, covar) {
       Cases,
       `Person Years`,
       `Rate per 1,000`,
-      `NO2(SD)`,
       `PM2.5(SD)`,
       `PM10(SD)`
     )

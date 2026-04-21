@@ -4,9 +4,6 @@ riskfactors <- load_RDS_data("v20230927", "RDSRiskFactors.csv",
                              excl_date = "2025-04-01",
                              cancel_date = "2025-05-01")
 
-# riskfactors <- read_csv("R:\\Shared\\GENERATIONS\\CoreData\\v20230927\\RDSRiskFactors.csv")
-# riskfactors <- apply_exclusions(riskfactors,excl_date,cancel_date)
-
 # Remove records with missing TCode
 riskfactors <- riskfactors %>%
   filter(!is.na(TCode), TCode != "NULL", TCode != "")
@@ -136,21 +133,22 @@ casummary <- casummary %>%
         (str_sub(ICDt, 1, 3) == "C33") |
         (str_sub(ICDt, 1, 3) == "C34"), 1, 0),
     # breast cancer specific recoding
-    # group Unknown screen detection status to the not known group
-    screendetected = case_when(
-      breast_cancer == 1 &
-        screen_Detected == "Y" ~ "Y",
-      breast_cancer == 1 &
-        screen_Detected %in% c("N", "U") ~ "N",
-      breast_cancer == 1 &
-        is.na(screen_Detected) ~ "N",
-      TRUE ~ NA_character_),
     # recode ER NA to text 'Unknown'
     er_Status = case_when(
       breast_cancer == 1 &
         er_Status == "Positive" ~ "Positive",
       breast_cancer == 1 &
         er_Status == "Negative" ~ "Negative",
+      breast_cancer == 1 ~ "Unknown",
+      TRUE ~ NA_character_), 
+    # Screen Detected 
+    screen_detected = case_when(
+      breast_cancer == 1 &
+        screen_Detected == "Y" ~ "Yes",
+      breast_cancer == 1 &
+        screen_Detected == "N" ~ "No",
+      breast_cancer == 1 &
+        screen_Detected == "U" ~ "Unknown",
       breast_cancer == 1 ~ "Unknown",
       TRUE ~ NA_character_)
   )

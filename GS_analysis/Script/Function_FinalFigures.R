@@ -22,7 +22,7 @@ full_cohort_plot <- function(data, lag_value, exp_def, plot_title = NULL) {
   
   # Default title if not supplied
   if (is.null(plot_title)) {
-    plot_title <- paste("Estimate with", lag_value, "and", exp_def, "exposure")
+    plot_title <- paste("")
   }
   
   # Create plot
@@ -53,242 +53,125 @@ full_cohort_plot <- function(data, lag_value, exp_def, plot_title = NULL) {
   return(p)
 }
 
-# Full Cohort Table 
-full_cohort_table <- function(data, table_title = NULL) {
-  
-  # Filter data
-  filtered_data <- data %>%
-    mutate(
-      included = case_when(
-        exp_definition == "average" & Outcome == "nolag" ~ 1, 
-        exp_definition == "average" & Outcome == "2lag" ~ 2, 
-        exp_definition == "average" & Outcome == "5lag" ~ 3, 
-        exp_definition == "point" & Outcome == "nolag" ~ 4, 
-        TRUE ~ 0
-      ), 
-      Analysis = case_when(
-        included == 1 ~ "Average Exposure*", 
-        included == 2 ~ "2 year lag", 
-        included == 3 ~ "5 year lag", 
-        included == 4 ~ "Point Exposure", 
-        TRUE ~ "out"
-      ),
-      Model = factor(Model, levels = c("A", "B", "C")), 
-      Analysis = factor(Analysis, levels = c("Average Exposure*", "Point Exposure", "2 year lag", "5 year lag"))
-    ) %>%
-    filter(
-      included != 0
-    ) %>%
-    select (
-      -included
-    )
-  
-  # Reshape to wide format
-  point_results_wide <- filtered_data %>% 
-    select(Model, Variable, Analysis, Exposure, 
-           `HR (95% CI)`, `p-value`) %>% 
-    pivot_wider(
-      id_cols = c(Model, Variable, Exposure),
-      names_from = Analysis,
-      values_from = c(`HR (95% CI)`, `p-value`),
-      names_glue = "{Analysis}__{.value}"
-    ) %>%
-    arrange(Model, Variable, Exposure) 
-  
-  point_results_wide <- point_results_wide %>%
-    select(
-      Model, Variable, Exposure,
-      
-      `Average Exposure*__HR (95% CI)`,
-      `Average Exposure*__p-value`,
-      
-      `Point Exposure__HR (95% CI)`,
-      `Point Exposure__p-value`,
-      
-      `2 year lag__HR (95% CI)`,
-      `2 year lag__p-value`,
-      
-      `5 year lag__HR (95% CI)`,
-      `5 year lag__p-value`
-    )
-  
-  # Create gt table
-  table <- point_results_wide %>%
-    gt(rowname_col = "Variable", groupname_col = "Model") %>%
-    
-    # Create column groups by Analysis
-    tab_spanner_delim(delim = "__") %>%
-    
-    cols_align(align = "center", columns = everything()) %>%
-    
-    tab_style(
-      style = cell_text(weight = "bold"),
-      locations = cells_column_labels()
-    ) %>%
-    
-    tab_header(title = table_title)%>%
-    
-    tab_caption("Primary Analysis")
-  
-  return(table)
-}
-
-
 ###################################################################
 # Subtype Plot
 
-subanalysis_plot <- function(data, type = "Menopausal Status", lag_choice = "no years",exp_choice = "average") {
-  if(type == "ER Status"){
-    data_clean <- data %>%
-      mutate(
-        pval = Pval, 
-        wald_pval = Wald_pval
-      )%>%
-      select(
-        -Pval, - Wald_pval
-      ) %>%
-      pivot_wider(
-        names_from = Subtype,
-        values_from = c(HR, CI_lower, CI_upper, pval),
-        names_sep = "_"
-      ) %>%
-      separate(
-        Model,
-        into = c("Model", "pollutantplus", "units", "extra", "lag"),
-        sep = "_"
-      )%>%
-      mutate(
-        pollutant = case_when(
-          grepl("P25", pollutantplus) ~ "PM 2.5",
-          grepl("P10", pollutantplus) ~ "PM 10",
-          TRUE ~ "ERROR"
-        ), 
-        exposure = case_when(
-          grepl("avg", pollutantplus) ~ "average",
-          grepl("point", pollutantplus) ~ "point",
-          TRUE ~ "ERROR"
-        ), 
-        units = case_when(
-          grepl("10", units) ~ "per10",
-          grepl("5", units) ~ "per5",
-          TRUE ~ "ERROR"
-        ), 
-        lag = case_when(
-          grepl("no", lag) ~ "no years",
-          grepl("2", lag) ~ "2 years",
-          grepl("5", lag) ~ "5 years",
-          TRUE ~ "ERROR"
-        )
-      ) %>%
-      select(
-        -pollutantplus, -extra
-      ) %>%
-      filter(
-        lag == lag_choice,
-        exposure == exp_choice) 
-    
-    
-    plot_data <- data_clean %>%
-      pivot_longer(
-        cols = c(HR_pos, HR_neg, HR_unk,
-                 CI_lower_pos, CI_lower_neg, CI_lower_unk,
-                 CI_upper_pos, CI_upper_neg, CI_upper_unk,
-                 pval_pos, pval_neg, pval_unk),
-        names_to = c(".value", "Event"),
-        names_pattern = "(HR|CI_lower|CI_upper|pval)_(pos|neg|unk)"
-      )%>% 
-      filter(
-        Event != "unk"
-      ) %>%
-      mutate(
-        Event = case_when(
-          Event == "pos" ~ "ER Positive", 
-          Event == "neg" ~ "ER Negative", 
-          TRUE ~ "Error"
-        ),
-        Event = factor(Event, levels = rev(c("ER Positive", "ER Negative"))), 
-        Model = factor(Model, levels = rev(c("A", "B", "C")))
-      )
-    
-  } else if(type == "Menopausal Status"){
-    
-    data_clean <- data %>%
-      mutate(
-        pollutant = case_when(
-          grepl("P25", pollutant) ~ "PM 2.5",
-          grepl("P10", pollutant) ~ "PM 10",
-          TRUE ~ "ERROR"
-        )) %>%
-      filter(
-        lag == lag_choice,
-        exposure == exp_choice
-      ) 
-    
-    plot_data <- data_clean %>%
-      pivot_longer(
-        cols = c(HR_pre, HR_post, 
-                 CI_lower_pre, CI_lower_post,
-                 CI_upper_pre, CI_upper_post,
-                 pvalue_pre, pvalue_post),
-        names_to = c(".value", "Event"),
-        names_pattern = "(HR|CI_lower|CI_upper|pvalue)_(pre|post)"
-      )%>% 
-      mutate(
-        Event = case_when(
-          Event == "pre" ~ "Premenopausal", 
-          Event == "post" ~ "Postmenopausal", 
-          TRUE ~ "Error"
-        ),
-        Event = factor(Event, levels = rev(c("Premenopausal", "Postmenopausal"))), 
-        Model = factor(Model, levels = rev(c("A", "B", "C")))
-      )
-    
-  } else {
-    stop( "ERROR: options are only ER Status or Menopausal Status")
-  }
+subtype_plot <- function(df,
+         x_breaks = c( 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0),
+         show_wald = TRUE,
+         plot_width = 12,
+         plot_height = NULL) {
   
-  p <- ggplot(plot_data, aes(
-    y = Model,
-    x = HR,
-    xmin = CI_lower,
-    xmax = CI_upper,
-    color = Event, 
-    group = Event
-  )) +
-    geom_point(size = 4, position = position_dodge(width = 0.5)) +
-    geom_errorbarh(
-      height = 0.1,
-      linewidth = 0.7,
-      position = position_dodge(width = 0.5)
-    ) +
-    geom_vline(xintercept = 1, linetype = "dashed", color = "gray50") +
-    facet_wrap(~ pollutant, ncol = 2, scales = "free_y", drop = FALSE) +
-    labs(
-      title = "",
-      y = "Model",
-      x = "Hazard Ratio (HR)",
-      color = "Event"
-    ) +
-    scale_x_log10(
-      breaks = c(0.5, 0.75, 1, 1.25, 1.5, 2),
-      limits = c(0.75, 2)
-    ) +
-    scale_color_manual(
-      breaks = if(type == "Menopausal Status") {c("Premenopausal", "Postmenopausal")} else {c("ER Positive", "ER Negative")},
-      values = if(type == "Menopausal Status") {c("Premenopausal" = "#2a9d8f","Postmenopausal" = "#e76f51")} else {c("ER Positive" = "#2a9d8f", "ER Negative"= "#e76f51")}
-    ) +
-    theme_minimal(base_size = 13) +
-    theme(
-      strip.text = element_text(size = 16, face = "bold"),
-      axis.text.y = element_text(angle = 0)
-    ) +
-    geom_text(
-      data = plot_data %>% distinct(pollutant, Model, wald_pval),
-      aes(x = 1.5, y = Model, label = paste0("Wald p=", signif(wald_pval, 3))),
-      inherit.aes = FALSE,
-      hjust = 0,
-      size = 4
+  # ── prep ────────────────────────────────────────────────────────────────────
+  
+  if(show_wald == TRUE){
+    model_levels <- c("Primary Analysis", "Menopausal_Status", "ER_Status", "Invasive_DCIS", "Screen_Detected") 
+  } else {
+    model_levels <- c("Point Exposure", "2 year time lag", "5 year time lag", "Participants who did not move Only", "Addresses at the Household Level Only", "Single Covariate Analysis" ) 
+  }
+  df <- df %>%
+    mutate(
+      stat_label = paste0(
+        formatC(HR,       format = "f", digits = 2), " (",
+        formatC(CI_lower, format = "f", digits = 2), "\u2013",
+        formatC(CI_upper, format = "f", digits = 2), ")  p=",
+        formatC(Pval,     format = "f", digits = 3)
+      ),
+      Model = factor(Model, levels = model_levels),
+      row_key = paste(Model, Subtype, sep = "__") 
     )
+  
+  # ── y-axis order: preserve input order, top-to-bottom ───────────────────────
+  row_order <- df %>%
+    mutate(orig_order = row_number()) %>%
+    arrange(desc(orig_order)) %>%
+    pull(row_key)
+  
+  df <- df %>%
+    mutate(row_key = factor(row_key, levels = row_order))
+  
+  # ── axis limits ─────────────────────────────────────────────────────────────
+  x_limits <- c(
+    min(df$CI_lower, na.rm = TRUE) * 0.85,
+    max(df$CI_upper, na.rm = TRUE) * 1.15
+  )
+  x_text_max <- max(x_limits) * 2.2
+  
+  # ── colours: one per model ──────────────────────────────────────────────────
+  palette <- c("#185FA5", "#0F6E56", "#993C1D", "#7F77DD", "#BA7517",
+               "#D4537E", "#BA7517", "#3B6D11")
+  models  <- unique(df$Model)
+  model_colors <- setNames(palette[seq_along(models)], models)
+  
+  # ── plot ────────────────────────────────────────────────────────────────────
+  p <- ggplot(df, aes(x = HR, y = row_key, colour = Model)) +
+    
+    geom_vline(xintercept = 1, linetype = "dashed",
+               colour = "grey60", linewidth = 0.4) +
+    
+    geom_errorbarh(
+      aes(xmin = CI_lower, xmax = CI_upper),
+      height = 0.25, linewidth = 0.7
+    ) +
+    
+    geom_point(shape = 15, size = 3) +
+    
+    geom_text(
+      aes(x = max(x_limits) * 1.02, label = stat_label),
+      hjust = 0, size = 2.8, colour = "grey30"
+    ) +
+    
+    scale_x_log10(
+      breaks = x_breaks,
+      labels = x_breaks,
+      limits = c(x_limits[1], x_text_max)
+    ) +
+    scale_colour_manual(values = model_colors) +
+    
+    scale_y_discrete(labels = function(x) sub(".*__", "", x)) +
+    
+    facet_grid(
+      rows   = vars(Model),
+      scales = "free_y",
+      space  = "free_y",
+      switch = "y"
+    ) +
+    
+    labs(x = "Hazard ratio (log scale)", y = NULL, colour = NULL) +
+    
+    theme_classic(base_size = 11) +
+    theme(
+      strip.placement   = "outside",
+      strip.background  = element_blank(),
+      strip.text.y.left = element_text(angle = 0, hjust = 1,
+                                       face = "bold", size = 10),
+      panel.spacing     = unit(0.8, "lines"),
+      axis.text.y       = element_text(size = 9),
+      axis.line.y       = element_blank(),
+      axis.ticks.y      = element_blank(),
+      legend.position   = "none",
+      plot.margin       = margin(10, 10, 10, 10)
+    )
+  
+  # ── optional wald label ──────────────────────────────────────────────────────
+  if (show_wald) {
+    wald_labels <- df %>%
+      group_by(Model) %>%
+      slice_tail(n = 1) %>%
+      ungroup() %>%
+      mutate(
+        wald_text = paste0("Wald p-value = ",
+                           formatC(Wald_pval, format = "f", digits = 3))
+      )
+    
+    p <- p + geom_text(
+      data = wald_labels,
+      aes(x = 1, y = row_key, label = wald_text),
+      hjust = 0.5, vjust = 2.5, size = 2.6,
+      colour = "grey30", fontface = "italic",
+      inherit.aes = FALSE
+    )
+  }
   
   return(p)
 }

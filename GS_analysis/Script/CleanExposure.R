@@ -1,7 +1,8 @@
 # Cleaning the exposure data
 
+cleanexposure <- function(ap_data, cohort_data){
 # Exposure initial formatting 
-long_pollution <- data_airpollution %>%
+long_pollution <- ap_data %>%
   # Pivot longer for all of the columns that begin with NO2, P25, P10 and put the exposure values in the second column
   pivot_longer(
     cols = matches("^(NO2|P25|P10)B25_\\d+$"),
@@ -27,7 +28,7 @@ airpollution <- long_pollution %>%
   ) 
 
 # Join the air pollution data with the risk factor data 
-all_data <- complete_cohort %>%
+all_data <- cohort_data %>%
   left_join(airpollution, by = "TCode") 
 
 # Relong the data
@@ -204,7 +205,11 @@ avg_pollution <- long_data_clean %>%
   )
 
 # Final dataset with average and point values 
-complete_cohort <- complete_cohort %>% 
+complete_cohort <- cohort_data %>% 
   left_join(snglpoint_pollution, by = "TCode") %>% 
   left_join(avg_pollution, by = "TCode") %>%
   left_join(airpollution_clean, by = "TCode") 
+
+return(complete_cohort)
+
+}

@@ -1,6 +1,8 @@
 # This code cleans the covariates for the air pollution analysis and creates the final input dataset
 
-base <- base %>%
+
+cleancovariates <- function(cohort_data, data_years, data_carstairs) {
+base <- cohort_data %>%
   mutate(
     # Defining the date of birth 
     ADOB_F = ADOB_F.x
@@ -18,7 +20,7 @@ carstairs <- data_carstairs %>%
 
 
 # Entry Year
-entryyr <- data_realyears %>%
+entryyr <- data_years %>%
   select(TCode, Entry) %>%
   # Remove any participants where there is no entry date (They did not completely enter the study)
   filter(Entry != "NULL") %>%
@@ -51,7 +53,10 @@ clean_cohort <- subset(
     "diagage365",
     "ICDt",
     "event", #0/1 if breast cancer 
-    "er_Status", 
+    "er_Status",
+    "screen_detected",
+    "breast_cancer_invasive", 
+    "breast_cancer_dcis", 
     "diagage",
     "c_age365", #person years of followup
     "bodysizebminow", 
@@ -89,13 +94,6 @@ clean_cohort <- clean_cohort %>%
   left_join(carstairs, by = "TCode") %>%
   left_join(entryyr, by = "TCode") %>%
   mutate(
-    er_Status = trimws(er_Status),
-    event_er = case_when(
-      er_Status == "Positive" & event == 1 ~ 1, # Positive
-      er_Status == "Unknown" & event == 1 ~ 3, # Unknown
-      er_Status == "Negative" & event == 1 ~ 2, # Negative
-      TRUE ~ 0
-    ), 
     event_men = case_when(
       diagage < meno_age_est & event == 1 ~ 1, #premenopausal
       diagage <= meno_age_est & event == 1 ~ 2, #postmenopausal 
@@ -116,6 +114,41 @@ clean_cohort <- clean_cohort %>%
     bc_10lag = case_when(#only count events starting 10 years after study entry
       diagyear < as.numeric(matchyear) + 10 ~ 0, 
       TRUE ~ event
+    ), 
+    
+    er_Status = trimws(er_Status),
+    event_er = case_when(
+      er_Status == "Positive" & bc_nolag == 1 ~ 1, # Positive
+      er_Status == "Unknown" & bc_nolag == 1 ~ 3, # Unknown
+      er_Status == "Negative" & bc_nolag == 1 ~ 2, # Negative
+      TRUE ~ 0
+    ), 
+    
+    screen_detected = trimws(screen_detected),
+    screen_detected = case_when(
+      screen_detected == "Yes" & bc_nolag == 1 ~ 1, # Yes
+      screen_detected == "Unknown" & bc_nolag == 1 ~ 3, # Unknown
+      screen_detected == "No" & bc_nolag == 1 ~ 2, # No
+      TRUE ~ 0
+    ), 
+    
+    breast_cancer_invasive = trimws(breast_cancer_invasive),
+    bc_invasive = case_when(
+      breast_cancer_invasive == 1 & bc_nolag == 1 ~ 1, 
+      TRUE ~ 0
+    ), 
+    
+    breast_cancer_dcis = trimws(breast_cancer_dcis),
+    bc_dcis = case_when(
+      breast_cancer_dcis == 1 & bc_nolag == 1 ~ 1, 
+      TRUE ~ 0
+    ), 
+    
+    inv_dcis = case_when(
+      bc_invasive ==1 ~ 1, # invasive
+      bc_dcis == 1 ~ 2, # DCIS
+      bc_nolag == 1 ~ 3, # Unknown
+      TRUE ~ 0
     )
   )
 
@@ -213,7 +246,18 @@ covariates <- clean_cohort %>%
                     labels = c("Nonevent", "Positive","Negative", "Unknown")
                     
     ),
-    
+    # Screen Detected status 
+    screen_detected_cat = factor(screen_detected, 
+                    levels = 0:3, 
+                    labels = c("Nonevent", "Yes","No", "Unknown")
+                    
+    ),
+    # Invasive/DCIS status 
+    inv_dcis_cat = factor(inv_dcis, 
+                                 levels = 0:3, 
+                                 labels = c("Nonevent", "Invasive","DCIS", "Unknown")
+                                 
+    ),
     # Menopause at diagnosis
     diag_men = case_when(
       event == 1 & diagage >= meno_age_est ~ 2, 
@@ -386,23 +430,5 @@ complete_cohort <- covariates %>%
     p_years = p_days365 / 365
   )
 
-
-#Filtering complete_cohort based on the menopausal_status determined in the .qmd file: 
-if(menopausal_status == "post"){
-  complete_cohort <- complete_cohort %>% 
-    filter(
-      Menopause_cat == "Postmenopausal"
-    )
-  print("This analysis is on POSTMENOPAUSAL WOMEN ONLY")
-}else if(menopausal_status == "pre"){
-  complete_cohort <- complete_cohort %>% 
-    filter(
-      Menopause_cat == "Premenopausal"
-    )
-  print("This analysis is on PREMENOPAUSAL WOMEN ONLY")
-}else if(menopausal_status == "all"){
-  print("This analysis is for all women in the study")
-} else {
-  stop("INVALID MENOPAUSE SPECIFICATION: options are 'pre', 'post', or 'all'")
 }
 
