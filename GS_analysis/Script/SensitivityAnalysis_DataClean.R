@@ -239,20 +239,20 @@ data_prep <- function(data, title = "UNDEFINED",redefined = F, lag = "none", exp
   
   if (exposure == "average"){
   P10_C <- coxph(
-    Surv(tstart, tstop, outcome) ~ I(avgP10 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+    Surv(tstart, tstop, outcome) ~ I(avgP10 / 5) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
     data = cohort_mensplit
   )
   P25_C <- coxph(
-    Surv(tstart, tstop, outcome) ~ I(avgP25 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+    Surv(tstart, tstop, outcome) ~ I(avgP25 / 5) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
     data = cohort_mensplit
   )
   } else if (exposure == "point") {
     P10_C <- coxph(
-      Surv(tstart, tstop, outcome) ~ I(pointP10 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+      Surv(tstart, tstop, outcome) ~ I(pointP10 / 5) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
       data = cohort_mensplit
     )
     P25_C <- coxph(
-      Surv(tstart, tstop, outcome) ~ I(pointP25 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+      Surv(tstart, tstop, outcome) ~ I(pointP25 / 5) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
       data = cohort_mensplit
     )
   } else{
@@ -365,10 +365,10 @@ sensitivity_covariate <- function(covariate, title = "NOT DEFINED") {
 
 # Sensitivity Analysis: 
 
-
+sensitivity_unadjusted <- sensitivity_covariate("", "Unadjusted")
 sensitivity_matchyear <- sensitivity_covariate("matchyear_cat", "Year of Study Entry")
 sensitivity_BMI <- sensitivity_covariate("BMI", "BMI")
-sensitivity_Carstairs <- sensitivity_covariate("Carstairs_cat", "Carstairs Index")
+sensitivity_Carstairs <- sensitivity_covariate("Carstairs_quint", "Carstairs Index")
 sensitivity_Smoking <- sensitivity_covariate("Smoking_cat", "Smoking")
 sensitivity_Alcohol <- sensitivity_covariate("Alcohol_cat", "Alcohol")
 sensitivity_Educ <- sensitivity_covariate("Educ_cat", "Education")
@@ -377,13 +377,13 @@ sensitivity_1Birth <- sensitivity_covariate("Birth1_age_cat", "Age at First Birt
 sensitivity_HRT <- sensitivity_covariate("HRT_cat", "HRT use")
 sensitivity_Meno <- sensitivity_covariate("menobandf", "Menopause")
 
-## ONLY HOUSEHOLD ADDRESSES
-clean_onlyHH_GS <- sensitivity_data_clean(onlyHH_GS, data_ap)
-sensitivity_household <- data_prep(clean_onlyHH_GS, "Addresses at the Household Level Only", redefined = T)
-
-## ONLY PARTICIPANTS WHO DID NOT MOVE
-clean_nomove_GS <- sensitivity_data_clean(nomove_GS, data_ap)
-sensitivity_nomove <- data_prep(clean_nomove_GS, "Participants who did not move Only", redefined = T)
+# ## ONLY HOUSEHOLD ADDRESSES
+# clean_onlyHH_GS <- sensitivity_data_clean(onlyHH_GS, data_ap)
+# sensitivity_household <- data_prep(clean_onlyHH_GS, "Addresses at the Household Level Only", redefined = T)
+# 
+# ## ONLY PARTICIPANTS WHO DID NOT MOVE
+# clean_nomove_GS <- sensitivity_data_clean(nomove_GS, data_ap)
+# sensitivity_nomove <- data_prep(clean_nomove_GS, "Participants who did not move Only", redefined = T)
 
 ## Point Exposure
 sensitivity_point <- data_prep(complete_cohort, "Point Exposure", exposure = "point")

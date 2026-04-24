@@ -57,7 +57,7 @@ full_cohort_plot <- function(data, lag_value, exp_def, plot_title = NULL) {
 # Subtype Plot
 
 subtype_plot <- function(df,
-         x_breaks = c( 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0),
+         x_breaks = c( 0.5, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3, 3.5),
          show_wald = TRUE,
          plot_width = 12,
          plot_height = NULL) {
@@ -65,9 +65,9 @@ subtype_plot <- function(df,
   # ── prep ────────────────────────────────────────────────────────────────────
   
   if(show_wald == TRUE){
-    model_levels <- c("Primary Analysis", "Menopausal_Status", "ER_Status", "Invasive_DCIS", "Screen_Detected") 
+    model_levels <- c("Final Model", "Menopausal Status", "ER Status", "Invasive vs. DCIS", "Screen Detected", "Carstairs Index") 
   } else {
-    model_levels <- c("Point Exposure", "2 year time lag", "5 year time lag", "Participants who did not move Only", "Addresses at the Household Level Only", "Single Covariate Analysis" ) 
+    model_levels <- c("Point Exposure", "2 year time lag", "5 year time lag", "EXPANSE Model Accuracy","Single Covariate Analysis" ) 
   }
   df <- df %>%
     mutate(
@@ -118,7 +118,7 @@ subtype_plot <- function(df,
     
     geom_text(
       aes(x = max(x_limits) * 1.02, label = stat_label),
-      hjust = 0, size = 2.8, colour = "grey30"
+      hjust = 0, size = 5, colour = "grey30"
     ) +
     
     scale_x_log10(
@@ -144,9 +144,9 @@ subtype_plot <- function(df,
       strip.placement   = "outside",
       strip.background  = element_blank(),
       strip.text.y.left = element_text(angle = 0, hjust = 1,
-                                       face = "bold", size = 10),
+                                       face = "bold", size = 15),
       panel.spacing     = unit(0.8, "lines"),
-      axis.text.y       = element_text(size = 9),
+      axis.text.y       = element_text(size = 12),
       axis.line.y       = element_blank(),
       axis.ticks.y      = element_blank(),
       legend.position   = "none",
@@ -167,8 +167,8 @@ subtype_plot <- function(df,
     p <- p + geom_text(
       data = wald_labels,
       aes(x = 1, y = row_key, label = wald_text),
-      hjust = 0.5, vjust = 2.5, size = 2.6,
-      colour = "grey30", fontface = "italic",
+      hjust = 0.5, vjust = 2.5, size = 5,
+      colour = "grey10", fontface = "italic",
       inherit.aes = FALSE
     )
   }

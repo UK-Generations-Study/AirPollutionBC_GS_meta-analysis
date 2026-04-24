@@ -216,6 +216,17 @@ covariates <- clean_cohort %>%
                            levels = 1:11, 
                            labels = c("1 (most)", "2", "3", "4", "5", "6", "7", "8", "9", "10 (least)", "Unknown")), 
     
+    Carstairs_quint = case_when(
+      is.na(car_dec) ~ 6,
+      TRUE ~ ceiling(car_dec / 2)
+    ),
+    
+    Carstairs_quint = factor(
+      Carstairs_quint,
+      levels = 1:6,
+      labels = c("1 (most)", "2", "3", "4", "5 (least)", "Unknown")
+    ),
+    
     # Define plausible limit
     Menarche = case_when(  
       as.numeric(menarcheage) > 20 ~ NA_real_, 

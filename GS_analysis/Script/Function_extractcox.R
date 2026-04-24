@@ -61,3 +61,52 @@ wald_pvalue <- function(cox_model, interaction_term, model_name) {
     wald_pval = p_value
   )
 }
+
+wald_pvalue_carstairs <- function(cox_model, model_name, exclude_unknown = TRUE) {
+  
+  name_parts <- unlist(strsplit(model_name, "_"))
+  if (length(name_parts) != 3) {
+    stop("Model name must have three parts separated by underscores (e.g., 'C_P25_int')")
+  }
+  
+  model_id  <- name_parts[1]
+  pollutant <- name_parts[2]
+  term_type <- name_parts[3]
+  
+  pollutant_var <- paste0("avg", pollutant)
+  
+  coefs    <- coef(cox_model)
+  vcov_mat <- vcov(cox_model)
+  
+  # --- Dynamically detect all Carstairs interaction terms ---
+  int_pattern    <- paste0("^", pollutant_var, ":Carstairs_quint")
+  int_term_names <- names(coefs)[grepl(int_pattern, names(coefs))]
+  
+  if (length(int_term_names) == 0) {
+    stop(paste("No Carstairs interaction terms found in model:", model_name))
+  }
+  
+  
+  # --- Optionally exclude Unknown ---
+  if (exclude_unknown) {
+    int_term_names <- int_term_names[!grepl("Unknown", int_term_names)]
+  } else {
+
+  }
+  # --- Global Wald test across remaining interaction terms ---
+  beta_wald <- coefs[int_term_names]
+  vcov_wald <- vcov_mat[int_term_names, int_term_names, drop = FALSE]
+  
+  wald_stat <- as.numeric(t(beta_wald) %*% solve(vcov_wald) %*% beta_wald)
+  wald_pval <- pchisq(wald_stat, df = length(int_term_names), lower.tail = FALSE)
+  
+  data.frame(
+    Model         = model_id,
+    pollutant     = pollutant,
+    term          = term_type,
+    wald_stat     = round(wald_stat, 4),
+    df            = length(int_term_names),
+    wald_pval     = round(wald_pval, 4),
+    exclude_unknown = exclude_unknown
+  )
+}

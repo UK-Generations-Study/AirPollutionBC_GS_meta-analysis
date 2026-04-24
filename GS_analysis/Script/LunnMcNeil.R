@@ -135,10 +135,11 @@ invdcis_data <- invdcis_data %>%
     avgP25 = avgP25/5, 
     avgP10 = avgP10/5
   )
+
 ###################################################################
 
 # Function to take out the HR, CI, and Wald values from the model
-extract_lm_hr <- function(cox_fit, exposure_var, subtype_levels = c("pos", "neg", "unk")) {
+extract_lm_hr <- function(cox_fit, exposure_var, subtype_levels = c("pos", "neg", "unk"), exclude_from_wald = "unk") {
   
   model_name <- deparse(substitute(cox_fit))
   
@@ -153,60 +154,72 @@ extract_lm_hr <- function(cox_fit, exposure_var, subtype_levels = c("pos", "neg"
   
   interaction_terms <- grep(paste0("^", exposure_var, ":"), names(coefs), value = TRUE)
   
+  # --- Beta extraction ---
   beta <- setNames(rep(0, length(subtype_levels)), subtype_levels)
   beta[subtype_levels[1]] <- b_main
   
-  for (term in interaction_terms) {
-    for (subtype in subtype_levels[-1]) {
-      if (grepl(subtype, term)) {
-        beta[subtype] <- b_main + coefs[term]
-      }
+  for (subtype in subtype_levels[-1]) {
+    pattern <- paste0("type", subtype)
+    matching_term <- interaction_terms[grepl(pattern, interaction_terms)]
+    if (length(matching_term) == 1) {
+      beta[subtype] <- b_main + coefs[matching_term]
     }
   }
   
+  # --- SE extraction ---
   se <- setNames(rep(NA, length(subtype_levels)), subtype_levels)
   se[subtype_levels[1]] <- sqrt(vcov_mat[exposure_var, exposure_var])
   
-  for (term in interaction_terms) {
-    for (subtype in subtype_levels[-1]) {
-      if (grepl(subtype, term)) {
-        se[subtype] <- sqrt(
-          vcov_mat[exposure_var, exposure_var] +
-            vcov_mat[term, term] +
-            2 * vcov_mat[exposure_var, term]
-        )
-      }
+  for (subtype in subtype_levels[-1]) {
+    pattern <- paste0("type", subtype)
+    matching_term <- interaction_terms[grepl(pattern, interaction_terms)]
+    if (length(matching_term) == 1) {
+      se[subtype] <- sqrt(
+        vcov_mat[exposure_var, exposure_var] +
+          vcov_mat[matching_term, matching_term] +
+          2 * vcov_mat[exposure_var, matching_term]
+      )
     }
   }
   
-  # === Wald test: subtype_levels[1] vs subtype_levels[2] only ===
-  wald_pval <- NA
-  subtype2_term <- interaction_terms[grepl(subtype_levels[2], interaction_terms)]  
+  # --- Global Wald test (excludes reference level and any in exclude_from_wald) ---
+  # Identify interaction terms that correspond to subtypes NOT in exclude_from_wald
+  wald_subtypes <- subtype_levels[!subtype_levels %in% c(subtype_levels[1], exclude_from_wald)]
   
-  if (length(subtype2_term) == 1) {
-    beta_diff <- coefs[subtype2_term]
-    var_diff  <- vcov_mat[subtype2_term, subtype2_term]
-    
-    wald_stat <- (beta_diff^2) / var_diff
-    wald_pval <- pchisq(wald_stat, df = 1, lower.tail = FALSE)
+  wald_terms <- c()
+  for (subtype in wald_subtypes) {
+    pattern <- paste0("type", subtype)
+    matching_term <- interaction_terms[grepl(pattern, interaction_terms)]
+    if (length(matching_term) == 1) {
+      wald_terms <- c(wald_terms, matching_term)
+    }
   }
   
+  wald_pval <- NA
+  if (length(wald_terms) >= 1) {
+    beta_wald <- coefs[wald_terms]
+    vcov_wald <- vcov_mat[wald_terms, wald_terms, drop = FALSE]
+    wald_stat  <- t(beta_wald) %*% solve(vcov_wald) %*% beta_wald
+    wald_pval  <- pchisq(wald_stat, df = length(wald_terms), lower.tail = FALSE)
+  }
+  
+  # --- Build result ---
   result <- data.frame(
-    Model = model_name,
-    Subtype = subtype_levels,
-    HR = exp(beta),
-    CI_lower = exp(beta - 1.96 * se),
-    CI_upper = exp(beta + 1.96 * se),
-    Pval = 2 * pnorm(abs(beta / se), lower.tail = FALSE),
+    Model     = model_name,
+    Subtype   = subtype_levels,
+    HR        = exp(beta),
+    CI_lower  = exp(beta - 1.96 * se),
+    CI_upper  = exp(beta + 1.96 * se),
+    Pval      = 2 * pnorm(abs(beta / se), lower.tail = FALSE),
     Wald_pval = rep(wald_pval, length(subtype_levels))
   )
   
-  result %>%
+  result <- result %>%
     mutate(
-      HR = round(HR, 2),
-      CI_lower = round(CI_lower, 2),
-      CI_upper = round(CI_upper, 2),
-      Pval = round(Pval, 3),
+      HR        = round(HR, 2),
+      CI_lower  = round(CI_lower, 2),
+      CI_upper  = round(CI_upper, 2),
+      Pval      = round(Pval, 3),
       Wald_pval = round(Wald_pval, 3)
     )
   

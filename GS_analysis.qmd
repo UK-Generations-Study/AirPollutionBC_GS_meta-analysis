@@ -169,6 +169,7 @@ complete_cohort_5lag <- complete_cohort %>%
 Full Cohort
 
 ```{r}
+#| label: Full Cohort Analysis
 #| warning: false
 #| echo: false
 source("GS_analysis/Script/TimeSplit_Menopause.R")
@@ -178,12 +179,10 @@ source("GS_analysis/Script/Point_Avg_CoxRegression.R")
 all_results <- avg_nolag_clean %>%
   mutate(
     Subtype = case_when(
-      Model == "A" ~ "Model A", 
-      Model == "B" ~ "Model B", 
-      Model == "C" ~ "Model C*", 
+      Model == "C" ~ "Fully Adjusted", 
       TRUE ~ "ERROR"
     ), 
-    Model = "Primary Analysis", 
+    Model = "Final_Model", 
     CI_upper = Upper_CI, 
     CI_lower = Lower_CI, 
     Pval = `p-value`, 
@@ -200,6 +199,7 @@ all_results <- avg_nolag_clean %>%
 
 Subtypes
 ```{r}
+#| label: Subtype Analysis
 #| warning: false
 #| echo: false
 
@@ -220,7 +220,7 @@ source("GS_analysis/Script/Menopause_applied_avg_nolag.R")
 source("GS_analysis/Script/LunnMcNeil.R")
 source("GS_analysis/Script/LunnMcNeil_applied.R")
 
-subtype <- rbind(all_results, lunnmcneil_results, all_men_results) %>%
+subtype <- rbind(all_results, lunnmcneil_results, all_men_results, all_carstairs) %>%
   mutate(
     Subtype = case_when(
       Subtype == "pos" ~ "Positive", 
@@ -232,27 +232,59 @@ subtype <- rbind(all_results, lunnmcneil_results, all_men_results) %>%
       Subtype == "dcis" ~ "DCIS Breast Cancer",
       Subtype == "pre" ~ "Premenopausal", 
       Subtype == "post" ~ "Postmenopausal", 
+      Subtype == "1 (most)" ~ "1 (most deprived)", 
+      Subtype == "5 (least)" ~ "5 (least deprived)", 
       TRUE ~ Subtype
+    ), 
+    Model = case_when(
+      Model == "Final_Model" ~ "Final Model", 
+      Model == "ER_Status" ~ "ER Status", 
+      Model == "Screen_Detected" ~ "Screen Detected", 
+      Model == "Invasive_DCIS" ~ "Invasive vs. DCIS", 
+      Model == "Menopausal_Status" ~ "Menopausal Status", 
+      TRUE ~ Model
     )
   )
 ```
 
 Sensitivity Analysis
 ```{r}
+#| label: Sensitivity Analysis
 #| warning: false
 #| echo: false
+
+source("GS_analysis/Script/QuantifyingBias.R")
+# PM10
+beta   <- P10_C$coefficients["I(avgP10/5)"]
+se     <- sqrt(vcov(P10_C)["I(avgP10/5)", "I(avgP10/5)"])
+quantifybias_P10 <- measurementerror_quantification(beta, se) %>%
+  mutate(
+    Model = "PM 10"
+  )
+
+# PM2.5
+beta   <- P25_C$coefficients["I(avgP25/5)"]
+se     <- sqrt(vcov(P25_C)["I(avgP25/5)", "I(avgP25/5)"])
+quantifybias_P25 <- measurementerror_quantification(beta, se)%>%
+  mutate(
+    Model = "PM 2.5"
+  )
+
+sensitivity_expansemodel <- rbind(quantifybias_P25, quantifybias_P10) %>%
+  mutate(
+    Covariate = "All", 
+    `P-value` = NA_real_
+  )
 
 source("GS_analysis/Script/SensitivityAnalysis_DataClean.R")
 
 sensitivity_all <- bind_rows(
-  sensitivity_household$P10_sensitivity, sensitivity_household$P25_sensitivity, 
-  sensitivity_nomove$P10_sensitivity, sensitivity_nomove$P25_sensitivity,
-  
   sensitivity_point$P10_sensitivity, sensitivity_point$P25_sensitivity,
   
   sensitivity_2lag$P10_sensitivity, sensitivity_2lag$P25_sensitivity, 
   sensitivity_5lag$P10_sensitivity, sensitivity_5lag$P25_sensitivity,
   
+  sensitivity_unadjusted$P10_sensitivity, sensitivity_unadjusted$P25_sensitivity, 
   sensitivity_matchyear$P10_sensitivity, sensitivity_matchyear$P25_sensitivity, 
   sensitivity_BMI$P10_sensitivity, sensitivity_BMI$P25_sensitivity, 
   sensitivity_Carstairs$P10_sensitivity, sensitivity_Carstairs$P25_sensitivity, 
@@ -262,14 +294,19 @@ sensitivity_all <- bind_rows(
   sensitivity_Parity$P10_sensitivity, sensitivity_Parity$P25_sensitivity, 
   sensitivity_1Birth$P10_sensitivity, sensitivity_1Birth$P25_sensitivity, 
   sensitivity_HRT$P10_sensitivity, sensitivity_HRT$P25_sensitivity, 
-  sensitivity_Meno$P10_sensitivity, sensitivity_Meno$P25_sensitivity
+  sensitivity_Meno$P10_sensitivity, sensitivity_Meno$P25_sensitivity, 
+  sensitivity_expansemodel
   )
 
 
 ```
+
+
+
 # Table 1: Data Description
 
 ```{r}
+#| label: Table 1
 #| warning: false
 #| echo: false
 
@@ -312,7 +349,7 @@ yearofentry <- covariate(complete_cohort, matchyear_cat)%>%
     covariate = "Year of study entry"
   )
 
-carstairs <- covariate(complete_cohort, Carstairs_cat)%>%
+carstairs <- covariate(complete_cohort, Carstairs_quint)%>%
   mutate(
     covariate = "Carstairs index"
   )
@@ -416,14 +453,18 @@ table1_tbl
 
 All hazard ratios calculated per 5 ug/m3 of exposure. For Primary Analysis, Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)
 
+WALD TEST FOR ALL CATEGORIES EXCPET UNKNOWN **
+
+** Unknown displayed for data exploration ONLY.
+
 
 ## Panel A : PM 2.5
 
 ```{r}
 #| label: Figure 2 pan A
 #| fig-align: center
-#| fig-width: 8
-#| fig-height: 8
+#| fig-width: 17
+#| fig-height: 15
 #| warning: false
 #| echo: false
 
@@ -432,10 +473,11 @@ subtype_P25 <- subtype %>%
     Exposure == "PM 2.5"
   ) %>%
   filter(
-    Subtype != "Unknown"
+    #Subtype != "Unknown"
   ) %>%
   select(-Exposure)
-subtype_P25_plot <- subtype_plot(subtype_P25)
+subtype_P25_plot <- subtype_plot(subtype_P25,
+         x_breaks = c(0.1, 0.3, 0.5, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5))
 
 subtype_P25_plot
 ```
@@ -446,8 +488,8 @@ subtype_P25_plot
 ```{r}
 #| label: Figure 2 pan B
 #| fig-align: center
-#| fig-width: 8
-#| fig-height: 8
+#| fig-width: 16
+#| fig-height: 15
 #| warning: false
 #| echo: false
 
@@ -456,10 +498,11 @@ subtype_P10 <- subtype %>%
     Exposure == "PM 10"
   ) %>%
   filter(
-    Subtype != "Unknown"
+    #Subtype != "Unknown"
   ) %>%
   select(-Exposure)
-subtype_P10_plot <- subtype_plot(subtype_P10)
+subtype_P10_plot <- subtype_plot(subtype_P10,
+         x_breaks = c(0.1, 0.3, 0.5, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0))
 
 subtype_P10_plot
 ```
@@ -560,7 +603,7 @@ subtype_clean <- subtype%>%
     values_from = c(`HR (95% CI)`, Pval, Wald_pval)
   ) %>%
   filter(
-    Subtype != "Unknown"
+    #Subtype != "Unknown"
   )
 
 subtype_clean %>%
@@ -679,73 +722,5 @@ separate(model, into = c("Pollutant", "Model"), sep = "_") %>%
   tab_header(
     title = "Postmenopausal Proportional Hazards"
   )
-```
-
-## Bias Quantification
-### Static
-```{r}
-#| warning: false
-#| echo: false
-source("GS_analysis/Script/QuantifyingBias.R")
-# PM10
-beta   <- P10_C$coefficients["I(avgP10/5)"]
-se     <- sqrt(vcov(P10_C)["I(avgP10/5)", "I(avgP10/5)"])
-
-quantifybias_P10 <- measurementerror_quantification(beta, se)
-
-# PM2.5
-beta   <- P25_C$coefficients["I(avgP25/5)"]
-se     <- sqrt(vcov(P25_C)["I(avgP25/5)", "I(avgP25/5)"])
-quantifybias_P25 <- measurementerror_quantification(beta, se)
-
-```
-#### PM 10
-```{r}
-
-quantifybias_P10$biasresults_static %>%
-  gt(groupname_col = "adjustment")%>%
-  tab_header(
-    title = "Bias Adjustment: PM10 fully adjusted models"
-  )
-
-```
-#### PM 2.5
-```{r}
-quantifybias_P25$biasresults_static %>%
-  gt(groupname_col = "adjustment")%>%
-  tab_header(
-    title = "Bias Adjustment: PM2.5 fully adjusted models"
-  )
-
-```
-
-### Probabilistic
-
-#### PM10
-```{r}
-
-probbias_P10 <- rbind(quantifybias_P10$biasresults_probablistic)
-
-probbias_P10 %>%
-  gt(groupname_col = "Bias Adjustment")%>%
-  tab_header(
-    title = "Probablistic Bias Adjustment: PM10 fully adjusted models"
-  )
-
-quantifybias_P10$biasresults_probablistic_graph
-```
-
-#### PM 2.5
-```{r}
-
-probbias_P25 <- rbind(quantifybias_P25$biasresults_probablistic)
-
-probbias_P25 %>%
-  gt(groupname_col = "Bias Adjustment")%>%
-  tab_header(
-    title = "Probablistic Bias Adjustment: PM2.5 fully adjusted models"
-  )
-
-quantifybias_P25$biasresults_probablistic_graph
 ```
 
