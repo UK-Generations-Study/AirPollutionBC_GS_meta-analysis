@@ -161,8 +161,8 @@ cohort_mensplit_screen <- cohort_mensplit_screen %>%
     p_years = interval_days / 365, 
     followup_year = floor((tstart - age_start365) / 365), 
     screen = factor(screen_detected,
-                    levels = c(0, 1, 2, 3, 4),
-                    labels = c("Nonevent", "Screen Detected", "Interval Cancer", "Other", "Unknown"))
+                    levels = c(0, 1, 2, 3),
+                    labels = c("Nonevent", "Screen Detected", "Non-Screen Detected", "Unknown"))
   )
 
 
@@ -179,19 +179,10 @@ yesscreen <- cohort_mensplit_screen %>%
 noscreen <- cohort_mensplit_screen %>%
   mutate(
     bc_nolag = case_when(
-      outcome == 1 & screen == "Interval Cancer" ~ 1, 
+      outcome == 1 & screen == "Non-Screen Detected" ~ 1, 
       TRUE ~ 0
     ),
-    type = "interval"
-  )
-
-other <- cohort_mensplit_screen %>%
-  mutate(
-    bc_nolag = case_when(
-      outcome == 1 & screen == "Other" ~ 1, 
-      TRUE ~ 0
-    ),
-    type = "other"
+    type = "noscreen"
   )
 
 unknown <- cohort_mensplit_screen %>%
@@ -202,10 +193,10 @@ unknown <- cohort_mensplit_screen %>%
     ),
     type = "unk"
   )
-screened <- rbind(yesscreen, noscreen, other, unknown)
+screened <- rbind(yesscreen, noscreen, unknown)
 screened <- screened %>%
   mutate(
-    type = factor(type, levels = c("screen", "interval", "other", "unk")),
+    type = factor(type, levels = c("screen", "noscreen", "unk")),
     avgNO2 = avgNO2/10,
     avgP25 = avgP25/5, 
     avgP10 = avgP10/5
