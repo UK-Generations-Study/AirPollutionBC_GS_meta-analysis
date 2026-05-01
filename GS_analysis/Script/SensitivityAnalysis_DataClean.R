@@ -377,10 +377,10 @@ sensitivity_1Birth <- sensitivity_covariate("Birth1_age_cat", "Age at First Birt
 sensitivity_HRT <- sensitivity_covariate("HRT_cat", "HRT use")
 sensitivity_Meno <- sensitivity_covariate("menobandf", "Menopause")
 
-# ## ONLY HOUSEHOLD ADDRESSES
-# clean_onlyHH_GS <- sensitivity_data_clean(onlyHH_GS, data_ap)
-# sensitivity_household <- data_prep(clean_onlyHH_GS, "Addresses at the Household Level Only", redefined = T)
-# 
+## ONLY HOUSEHOLD ADDRESSES
+clean_onlyHH_GS <- sensitivity_data_clean(onlyHH_GS, data_ap)
+sensitivity_household <- data_prep(clean_onlyHH_GS, "Addresses at the Household Level Only", redefined = T)
+
 # ## ONLY PARTICIPANTS WHO DID NOT MOVE
 # clean_nomove_GS <- sensitivity_data_clean(nomove_GS, data_ap)
 # sensitivity_nomove <- data_prep(clean_nomove_GS, "Participants who did not move Only", redefined = T)

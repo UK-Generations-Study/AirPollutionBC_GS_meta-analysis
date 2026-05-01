@@ -1,7 +1,7 @@
 # This code cleans the covariates for the air pollution analysis and creates the final input dataset
 
 
-cleancovariates <- function(cohort_data, data_years, data_carstairs) {
+cleancovariates <- function(cohort_data, data_years, data_carstairs, data_england) {
 base <- cohort_data %>%
   mutate(
     # Defining the date of birth 
@@ -17,6 +17,18 @@ base_all <- base %>%
 # clean the carstairs data 
 carstairs <- data_carstairs %>%
   dplyr::select(TCode, carstairs, car_dec)
+
+region <- data_england %>%
+  mutate(
+    country = case_when(
+      Region %in% c("1", "2", "3", "4") ~ "England", 
+      Region == "5" ~ "Scotland", 
+      Region == "6" ~ "Northern Ireland", 
+      Region == "7" ~ "Wales", 
+      TRUE ~ "Other"
+    )
+  ) %>%
+  select(TCode, country)
 
 
 # Entry Year
@@ -54,7 +66,7 @@ clean_cohort <- subset(
     "ICDt",
     "event", #0/1 if breast cancer 
     "er_Status",
-    "screen_detected",
+    "SCREENINGSTATUSCOSD_CODE",
     "breast_cancer_invasive", 
     "breast_cancer_dcis", 
     "diagage",
@@ -93,6 +105,7 @@ clean_cohort <- clean_cohort %>%
   mutate(TCode = as.character(TCode)) %>%
   left_join(carstairs, by = "TCode") %>%
   left_join(entryyr, by = "TCode") %>%
+  left_join(region, by = "TCode") %>%
   mutate(
     event_men = case_when(
       diagage < meno_age_est & event == 1 ~ 1, #premenopausal
@@ -124,11 +137,12 @@ clean_cohort <- clean_cohort %>%
       TRUE ~ 0
     ), 
     
-    screen_detected = trimws(screen_detected),
+    SCREENINGSTATUSCOSD_CODE = trimws(SCREENINGSTATUSCOSD_CODE),
     screen_detected = case_when(
-      screen_detected == "Yes" & bc_nolag == 1 ~ 1, # Yes
-      screen_detected == "Unknown" & bc_nolag == 1 ~ 3, # Unknown
-      screen_detected == "No" & bc_nolag == 1 ~ 2, # No
+      SCREENINGSTATUSCOSD_CODE == "1" & bc_nolag == 1 ~ 1, # Screen Detected
+      SCREENINGSTATUSCOSD_CODE == "2" & bc_nolag == 1 ~ 2, # Interval Cancer
+      SCREENINGSTATUSCOSD_CODE %in% c("4", "5", "6", "7") & bc_nolag == 1 ~ 3, # Other
+      (SCREENINGSTATUSCOSD_CODE %in% c("9", "NM")| is.na(SCREENINGSTATUSCOSD_CODE)) & bc_nolag == 1 ~ 4, # Unknown
       TRUE ~ 0
     ), 
     
@@ -178,6 +192,8 @@ covariates <- clean_cohort %>%
                            levels = 1:7, 
                            labels = c("2004", "2005", "2006", "2007", "2008", "2009-2018", "Unknown")
                            
+    ),
+    Region = factor(country, levels = c("England", "Scotland", "Wales", "Northern Ireland", "Other")
     ),
     # Define plausible limit
     BMI = case_when(
@@ -259,8 +275,8 @@ covariates <- clean_cohort %>%
     ),
     # Screen Detected status 
     screen_detected_cat = factor(screen_detected, 
-                    levels = 0:3, 
-                    labels = c("Nonevent", "Yes","No", "Unknown")
+                    levels = 0:4, 
+                    labels = c("Nonevent", "Screen Detected","Interval Cancer", "Other", "Unknown")
                     
     ),
     # Invasive/DCIS status 

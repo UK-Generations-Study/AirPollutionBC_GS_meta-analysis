@@ -63,6 +63,21 @@ casummary <- merge(x = casummary,
                                    c("TCode", "ADOB_F", "fupca_start_F")],
                    by.x = c("TCode"), by.y = c("TCode"), all.x = TRUE)
 
+# Add more high def screening variable
+newcancer<- data_newcancer %>%
+  select(
+  TCode, ICD_CODE, CANCER_SITE, SCREENINGSTATUSCOSD_CODE, DIAGNOSIS_DATE_SHIFTED
+  ) %>%
+  mutate(
+    DIAGNOSIS_DATE_SHIFTED = as.Date(DIAGNOSIS_DATE_SHIFTED)
+  )
+og_data <- casummary %>%
+  mutate(
+    diagdate_f = as.Date(diagdate_f, format = "%d/%m/%Y"),
+    DIAGNOSIS_DATE_SHIFTED = as.Date(diagdate_f)
+  )
+casummary <- og_data %>%
+  left_join(newcancer, by = c("TCode", "DIAGNOSIS_DATE_SHIFTED"))
 
 # identify outcome event(s)
 casummary <- casummary %>%

@@ -74,6 +74,7 @@ library(patchwork)
 library(zoo)
 library(lubridate)
 library(slider)
+library(jsonlite)
 
 ```
 
@@ -104,6 +105,8 @@ Data
 data_airpollution <- read_csv("R:/Shared/GENERATIONS/GeoLinkages/GS_Expanse_ForAnalysis.csv")
 data_realyears <- read_csv("R:/Shared/GENERATIONS/Event_Years/RDSTrueYear.csv")
 data_carstairs <- read_csv("R:/Shared/GENERATIONS/GeoLinkages/For_Air_Pollution_Analysis/GS_carstairs2001.csv")
+data_england <- read_csv("R:/Shared/GENERATIONS/GeoLinkages/BoundaryLine_OrdnanceSurvey/Region.csv")
+data_newcancer <- fromJSON("R:\\Shared\\GENERATIONS\\_JSON_Data\\v20260123\\CancerSummary.json")
 ```
 
 Building the cohort and cleaning the covariates
@@ -124,7 +127,7 @@ source("GS_analysis/Script/Cohort_Build.R")
 
 
 # Cleaning the data 
-clean_covariates <- cleancovariates (base, data_realyears, data_carstairs)
+clean_covariates <- cleancovariates (base, data_realyears, data_carstairs, data_england)
 complete_cohort <- cleanexposure(data_airpollution, clean_covariates)
 
 complete_cohort <- complete_cohort %>%
@@ -227,7 +230,8 @@ subtype <- rbind(all_results, lunnmcneil_results, all_men_results, all_carstairs
       Subtype == "neg" ~ "Negative ", 
       Subtype == "unk" ~ "Unknown", 
       Subtype == "screen" ~ "Screen Detected", 
-      Subtype == "noscreen" ~ "Non Screen Detected", 
+      Subtype == "interval" ~ "Interval Cancer", 
+      Subtype == "other" ~ "Other", 
       Subtype == "invasive" ~ "Invasive Breast Cancer", 
       Subtype == "dcis" ~ "DCIS Breast Cancer",
       Subtype == "pre" ~ "Premenopausal", 
@@ -239,7 +243,7 @@ subtype <- rbind(all_results, lunnmcneil_results, all_men_results, all_carstairs
     Model = case_when(
       Model == "Final_Model" ~ "Final Model", 
       Model == "ER_Status" ~ "ER Status", 
-      Model == "Screen_Detected" ~ "Screen Detected", 
+      Model == "Screen_Detected" ~ "Screen Detected*", 
       Model == "Invasive_DCIS" ~ "Invasive vs. DCIS", 
       Model == "Menopausal_Status" ~ "Menopausal Status", 
       TRUE ~ Model
@@ -284,6 +288,8 @@ sensitivity_all <- bind_rows(
   sensitivity_2lag$P10_sensitivity, sensitivity_2lag$P25_sensitivity, 
   sensitivity_5lag$P10_sensitivity, sensitivity_5lag$P25_sensitivity,
   
+  sensitivity_household$P10_sensitivity,sensitivity_household$P25_sensitivity,
+  
   sensitivity_unadjusted$P10_sensitivity, sensitivity_unadjusted$P25_sensitivity, 
   sensitivity_matchyear$P10_sensitivity, sensitivity_matchyear$P25_sensitivity, 
   sensitivity_BMI$P10_sensitivity, sensitivity_BMI$P25_sensitivity, 
@@ -312,18 +318,18 @@ sensitivity_all <- bind_rows(
 
 nolag <- covariate(complete_cohort, bc_nolag) %>%
   mutate(
-    covariate = "Cohort: no time lag"
+    covariate = "Full Cohort"
   )
 twolag <- covariate(complete_cohort, bc_2lag)%>%
   mutate(
-    covariate = "Cohort: 2 year time lag"
+    covariate = "Sensitivity Cohort: 2 year time lag"
   )
 fivelag <- covariate(complete_cohort, bc_5lag)%>%
   mutate(
-    covariate = "Cohort: 5 year time lag"
+    covariate = "Sensitivity Cohort: 5 year time lag"
   )
 
-outcome <- bind_rows(nolag, twolag, fivelag) %>%
+outcome <- bind_rows(nolag) %>%
   mutate(
     Cases = case_when(
       Subcategories == 0 ~ 0, 
@@ -334,12 +340,27 @@ outcome <- bind_rows(nolag, twolag, fivelag) %>%
       TRUE ~ `Rate per 1,000`
     ), 
     Subcategories = case_when(
-      Subcategories == 1 ~ "Case", 
-      Subcategories == 0 ~ "Not Case", 
+      Subcategories == 1 ~ "Breast Cancer Case", 
+      Subcategories == 0 ~ "Not Breast Cancer Case", 
       TRUE ~ "ERROR"
     )
   )
-
+sensitivity <- bind_rows(twolag, fivelag) %>%
+  mutate(
+    Cases = case_when(
+      Subcategories == 0 ~ 0, 
+      TRUE ~ Cases
+    ),
+    `Rate per 1,000` = case_when(
+      Subcategories == 0 ~ 0, 
+      TRUE ~ `Rate per 1,000`
+    ), 
+    Subcategories = case_when(
+      Subcategories == 1 ~ "Breast Cancer Case", 
+      Subcategories == 0 ~ "Not Breast Cancer Case", 
+      TRUE ~ "ERROR"
+    )
+  )
 age <- covariate(complete_cohort, AgeEntry_cat)%>%
   mutate(
     covariate = "Age at study entry"
@@ -374,6 +395,7 @@ parity <- covariate(complete_cohort, Parity_cat)%>%
   mutate(
     covariate = "Parity"
   )
+
 agefirstbirth <- covariate(complete_cohort, Birth1_age_cat)%>%
   mutate(
     covariate = "Age at first birth"
@@ -405,10 +427,13 @@ INVDCIS <- covariate(complete_cohort, inv_dcis_cat)%>%
     covariate = "Invasive or DCIS Breast Cancer"
   )
 
+Region <- covariate(complete_cohort, Region)%>%
+  mutate(
+    covariate = "UK Country"
+  )
 
 
-
-table1 <- bind_rows(outcome,  meno, ER, SCREEN, INVDCIS, age, yearofentry, carstairs, bmi, smoking, alcohol, education, parity, agefirstbirth, HRT) %>%
+table1 <- bind_rows(outcome,  meno, ER, INVDCIS, SCREEN,carstairs, Region, age, yearofentry, bmi, smoking, alcohol, education, parity, agefirstbirth, HRT, sensitivity) %>%
   mutate(
       Cases = paste0(format(Cases, big.mark = ",")),
       `Person Years` = paste0(format(`Person Years`, big.mark = ","))
@@ -453,10 +478,6 @@ table1_tbl
 
 All hazard ratios calculated per 5 ug/m3 of exposure. For Primary Analysis, Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)
 
-WALD TEST FOR ALL CATEGORIES EXCPET UNKNOWN **
-
-** Unknown displayed for data exploration ONLY.
-
 
 ## Panel A : PM 2.5
 
@@ -473,13 +494,19 @@ subtype_P25 <- subtype %>%
     Exposure == "PM 2.5"
   ) %>%
   filter(
-    #Subtype != "Unknown"
+    Subtype != "Unknown"
   ) %>%
   select(-Exposure)
 subtype_P25_plot <- subtype_plot(subtype_P25,
-         x_breaks = c(0.1, 0.3, 0.5, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0, 3.5, 4.0, 4.5))
+         x_breaks = c(0.1, 0.3, 0.5, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0))
 
-subtype_P25_plot
+subtype_P25_plot +
+  plot_annotation(
+    caption = "* For women in England who are eligible for screening (Ages 50–71) only",
+    theme = theme(
+      plot.caption = element_text(size = 15, hjust = 0)
+    )
+  )
 ```
 
 
@@ -498,13 +525,19 @@ subtype_P10 <- subtype %>%
     Exposure == "PM 10"
   ) %>%
   filter(
-    #Subtype != "Unknown"
+    Subtype != "Unknown"
   ) %>%
   select(-Exposure)
 subtype_P10_plot <- subtype_plot(subtype_P10,
          x_breaks = c(0.1, 0.3, 0.5, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0))
 
-subtype_P10_plot
+subtype_P10_plot+
+  plot_annotation(
+    caption = "* For women in England who are eligible for screening (Ages 50–71) only",
+    theme = theme(
+      plot.caption = element_text(size = 15, hjust = 0)
+    )
+  )
 ```
 
 
@@ -517,8 +550,8 @@ All hazard ratios calculated per 5 ug/m3 of exposure.
 ```{r}
 #| label: Supp Fig 1 panel A
 #| fig-align: center
-#| fig-width: 8
-#| fig-height: 8
+#| fig-width: 15
+#| fig-height: 15
 #| warning: false
 #| echo: false
 
@@ -548,8 +581,8 @@ sensitivity_P25_plot
 ```{r}
 #| label: Supp Fig 1 panel B
 #| fig-align: center
-#| fig-width: 8
-#| fig-height: 8
+#| fig-width: 15
+#| fig-height: 15
 #| warning: false
 #| echo: false
 

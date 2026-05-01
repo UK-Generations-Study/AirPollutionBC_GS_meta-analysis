@@ -57,7 +57,7 @@ full_cohort_plot <- function(data, lag_value, exp_def, plot_title = NULL) {
 # Subtype Plot
 
 subtype_plot <- function(df,
-         x_breaks = c( 0.5, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3, 3.5),
+         x_breaks = c( 0.5, 0.8, 0.9, 1.0, 1.2, 1.4),
          show_wald = TRUE,
          plot_width = 12,
          plot_height = NULL) {
@@ -65,9 +65,9 @@ subtype_plot <- function(df,
   # ── prep ────────────────────────────────────────────────────────────────────
   
   if(show_wald == TRUE){
-    model_levels <- c("Final Model", "Menopausal Status", "ER Status", "Invasive vs. DCIS", "Screen Detected", "Carstairs Index") 
+    model_levels <- c("Final Model", "Menopausal Status", "ER Status", "Invasive vs. DCIS", "Screen Detected*", "Carstairs Index") 
   } else {
-    model_levels <- c("Point Exposure", "2 year time lag", "5 year time lag", "EXPANSE Model Accuracy","Single Covariate Analysis" ) 
+    model_levels <- c("Point Exposure", "2 year time lag", "5 year time lag", "EXPANSE Model Accuracy","Addresses at the Household Level Only", "Single Covariate Analysis" ) 
   }
   df <- df %>%
     mutate(
