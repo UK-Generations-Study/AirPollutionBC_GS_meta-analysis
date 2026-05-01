@@ -140,9 +140,8 @@ clean_cohort <- clean_cohort %>%
     SCREENINGSTATUSCOSD_CODE = trimws(SCREENINGSTATUSCOSD_CODE),
     screen_detected = case_when(
       SCREENINGSTATUSCOSD_CODE == "1" & bc_nolag == 1 ~ 1, # Screen Detected
-      SCREENINGSTATUSCOSD_CODE == "2" & bc_nolag == 1 ~ 2, # Interval Cancer
-      SCREENINGSTATUSCOSD_CODE %in% c("4", "5", "6", "7") & bc_nolag == 1 ~ 3, # Other
-      (SCREENINGSTATUSCOSD_CODE %in% c("9", "NM")| is.na(SCREENINGSTATUSCOSD_CODE)) & bc_nolag == 1 ~ 4, # Unknown
+      SCREENINGSTATUSCOSD_CODE %in% c("2","4", "5", "6", "7") & bc_nolag == 1 ~ 2, # Non-Screen Detected
+      (SCREENINGSTATUSCOSD_CODE %in% c("9", "NM")| is.na(SCREENINGSTATUSCOSD_CODE)) & bc_nolag == 1 ~ 3, # Unknown
       TRUE ~ 0
     ), 
     
@@ -275,8 +274,8 @@ covariates <- clean_cohort %>%
     ),
     # Screen Detected status 
     screen_detected_cat = factor(screen_detected, 
-                    levels = 0:4, 
-                    labels = c("Nonevent", "Screen Detected","Interval Cancer", "Other", "Unknown")
+                    levels = 0:3, 
+                    labels = c("Nonevent", "Screen Detected","Non-Screen Detected", "Unknown")
                     
     ),
     # Invasive/DCIS status 

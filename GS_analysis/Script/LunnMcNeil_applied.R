@@ -4,7 +4,7 @@
 
 # ER
 ER_Status <- coxph(
-  Surv(tstart, tstop, outcome) ~ strata(type) + avgP25*type + matchyear_cat + BMI +Carstairs_quint +Smoking_cat + Alcohol_cat+Educ_cat + Parity_cat+Birth1_age_cat +HRT_cat +menobandf,
+  Surv(tstart, tstop, bc_nolag) ~ strata(type) + avgP25*type + matchyear_cat + BMI +Carstairs_quint +Smoking_cat + Alcohol_cat+Educ_cat + Parity_cat+Birth1_age_cat +HRT_cat +menobandf,
   cluster = er_status$TCode,
   data = er_status
 )
@@ -16,7 +16,7 @@ Screen_Detected <- coxph(
   cluster = screened$TCode,
   data = screened
 )
-Screen_LM <- extract_lm_hr(Screen_Detected, exposure_var = "avgP25", subtype_levels = c("screen", "interval", "other", "unk"))
+Screen_LM <- extract_lm_hr(Screen_Detected, exposure_var = "avgP25", subtype_levels = c("screen", "noscreen", "unk"))
 
 # Invasive vs DCIS
 Invasive_DCIS <- coxph(
@@ -49,7 +49,7 @@ Screen_Detected <- coxph(
   cluster = screened$TCode,
   data = screened
 )
-Screen_LM <- extract_lm_hr(Screen_Detected, exposure_var = "avgP10", subtype_levels = c("screen", "interval", "other", "unk"))
+Screen_LM <- extract_lm_hr(Screen_Detected, exposure_var = "avgP10", subtype_levels = c("screen", "noscreen", "unk"))
 
 # Invasive vs DCIS
 Invasive_DCIS <- coxph(
