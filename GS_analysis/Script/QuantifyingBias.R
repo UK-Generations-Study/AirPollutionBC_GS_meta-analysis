@@ -14,30 +14,19 @@ P25_C <- coxph(
 )
 
 measurementerror_quantification <- function(beta, se) {
-  lambdas <- c(0.69, 0.75, 0.82)
-  slopes  <- c(0.39, 0.56, 0.73)
-  
+
   set.seed(123)
   n    <- 100000
   
   # ── Parameter distributions ───────────────────────────────────────────────────
-  # Lambda: classical error attenuation (Shen et al. CV-R², range 0.69–0.82)
+  # Lambda: classical error attenuation (Shen et al. lamda comparison with, range 0.69–0.82)
   # Modelled as a Beta scaled to [0.69, 0.82]:
   #   mean ≈ 0.755, tight spread consistent with reported range
   lambda_draws <- 0.69 + rbeta(n, shape1 = 5, shape2 = 5) * (0.82 - 0.69)
-  
-  # Slope: Berkson personal-to-ambient ratio (meta-analysis mean 0.56, 95% CI 0.39–0.73)
-  # Modelled as Normal truncated at (0, 1):
-  #   mean = 0.56, SD derived so ±1.96 SD ≈ 0.39–0.73 → SD ≈ 0.0867
-  slope_raw    <- rnorm(n, mean = 0.56, sd = 0.0867)
-  slope_draws  <- pmax(0.01, pmin(1, slope_raw))   # truncate to (0, 1]
-  
+
+
   # ── Monte Carlo bias-adjusted betas ──────────────────────────────────────────
   beta_classical <- beta  / lambda_draws          # point estimate corrected
-  beta_combined  <- beta  / lambda_draws          # same correction for combined
-  
-  se_berkson     <- se    / slope_draws           # SE inflated for Berkson
-  se_combined    <- se    / slope_draws           # SE inflated for combined
   
   # ── Simulation draws of HR (with parameter uncertainty) ──────────────────────
   # For each draw, sample a single HR from N(beta_adj, se_adj)
