@@ -53,8 +53,8 @@ er_status <- er_status %>%
   mutate(
     type = factor(type, levels = c("pos", "neg", "unk")),
     avgNO2 = avgNO2/10,
-    avgP25 = avgP25/5, 
-    avgP10 = avgP10/5
+    avgP25 = avgP25/10, 
+    avgP10 = avgP10/10
   )
 
 
@@ -90,8 +90,8 @@ invdcis_data <- invdcis_data %>%
   mutate(
     type = factor(type, levels = c("invasive", "dcis", "unk")),
     avgNO2 = avgNO2/10,
-    avgP25 = avgP25/5, 
-    avgP10 = avgP10/5
+    avgP25 = avgP25/10, 
+    avgP10 = avgP10/10
   )
 
 # Building Screening but only for women ages 50-71 in England
@@ -198,8 +198,8 @@ screened <- screened %>%
   mutate(
     type = factor(type, levels = c("screen", "noscreen", "unk")),
     avgNO2 = avgNO2/10,
-    avgP25 = avgP25/5, 
-    avgP10 = avgP10/5
+    avgP25 = avgP25/10, 
+    avgP10 = avgP10/10
   )
 
 

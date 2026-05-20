@@ -55,20 +55,20 @@ full_cohort_plot <- function(data, lag_value, exp_def, plot_title = NULL) {
 
 ###################################################################
 # Subtype Plot
-
 subtype_plot <- function(df,
-         x_breaks = c( 0.5, 0.8, 0.9, 1.0, 1.2, 1.4),
-         show_wald = TRUE,
-         plot_width = 12,
-         plot_height = NULL) {
+                         x_breaks = c(0.5, 0.8, 0.9, 1.0, 1.2, 1.4),
+                         show_wald = TRUE,
+                         plot_width = 20,
+                         plot_height = NULL) {
   
   # ── prep ────────────────────────────────────────────────────────────────────
   
-  if(show_wald == TRUE){
-    model_levels <- c("Final Model", "Menopausal Status", "ER Status", "Invasive vs. DCIS", "Screen Detected*", "Carstairs Index") 
+  if (show_wald == TRUE) {
+    model_levels <- c("Final Model", "Menopausal Status", "Carstairs Index", "Oestrogen Receptor (ER) Status", "Invasive vs. DCIS", "Mode of Detection*")
   } else {
-    model_levels <- c("Point Exposure", "2 year time lag", "5 year time lag", "EXPANSE Model Accuracy","Addresses at the Household Level Only", "Single Covariate Analysis" ) 
+    model_levels <- c("Point Exposure", "2 year time lag", "5 year time lag", "EXPANSE Model Accuracy", "Addresses at the Household Level Only", "Single Covariate Analysis")
   }
+  
   df <- df %>%
     mutate(
       stat_label = paste0(
@@ -77,8 +77,13 @@ subtype_plot <- function(df,
         formatC(CI_upper, format = "f", digits = 2), ")  p=",
         formatC(Pval,     format = "f", digits = 3)
       ),
-      Model = factor(Model, levels = model_levels),
-      row_key = paste(Model, Subtype, sep = "__") 
+      wald_label = if (show_wald) {
+        paste0("Wald p=", formatC(Wald_pval, format = "f", digits = 3))
+      } else {
+        NA_character_
+      },
+      Model   = factor(Model, levels = model_levels),
+      row_key = paste(Model, Subtype, sep = "__")
     )
   
   # ── y-axis order: preserve input order, top-to-bottom ───────────────────────
@@ -95,30 +100,60 @@ subtype_plot <- function(df,
     min(df$CI_lower, na.rm = TRUE) * 0.85,
     max(df$CI_upper, na.rm = TRUE) * 1.15
   )
-  x_text_max <- max(x_limits) * 2.2
   
-  # ── colours: one per model ──────────────────────────────────────────────────
-  palette <- c("#185FA5", "#0F6E56", "#993C1D", "#7F77DD", "#BA7517",
-               "#D4537E", "#BA7517", "#3B6D11")
-  models  <- unique(df$Model)
-  model_colors <- setNames(palette[seq_along(models)], models)
+  x_stat_start <- max(x_limits) * 1.02
+  x_wald_start <- max(x_limits) * 2.80
+  x_text_max   <- max(x_limits) * 4.80
+  
+  # ── black and white: all markers black ──────────────────────────────────────
+  models       <- unique(df$Model)
+  model_colors <- setNames(rep("black", length(models)), models)
+  
+  # ── header anchor: top row of the first (top) facet ─────────────────────────
+  top_model  <- levels(df$Model)[1]
+  top_row    <- df %>% filter(Model == top_model) %>% slice(1) %>% pull(row_key)
+  header_df  <- data.frame(row_key = top_row, Model = top_model) %>%
+    mutate(row_key = factor(row_key, levels = levels(df$row_key)),
+           Model   = factor(Model,   levels = levels(df$Model)))
   
   # ── plot ────────────────────────────────────────────────────────────────────
   p <- ggplot(df, aes(x = HR, y = row_key, colour = Model)) +
     
-    geom_vline(xintercept = 1, linetype = "dashed",
-               colour = "grey60", linewidth = 0.4) +
+    geom_vline(
+      xintercept = 1,
+      linetype   = "dashed",
+      colour     = "grey60",
+      linewidth  = 0.8
+    ) +
     
     geom_errorbarh(
       aes(xmin = CI_lower, xmax = CI_upper),
-      height = 0.25, linewidth = 0.7
+      height    = 0.25,
+      linewidth = 1.4
     ) +
     
-    geom_point(shape = 15, size = 3) +
+    geom_point(shape = 15, size = 5) +
     
+    # ── HR (95% CI) p= column header ──────────────────────────────────────────
     geom_text(
-      aes(x = max(x_limits) * 1.02, label = stat_label),
-      hjust = 0, size = 5, colour = "grey30"
+      data        = header_df,
+      aes(x = x_stat_start, y = row_key, label = "HR (95% CI)  p-value"),
+      hjust       = 0,
+      vjust       = -1.5,
+      size        = 15,
+      colour      = "grey10",
+      fontface    = "bold",
+      family      = "Times New Roman",
+      inherit.aes = FALSE
+    ) +
+    
+    # ── HR (95% CI) p= values ─────────────────────────────────────────────────
+    geom_text(
+      aes(x = x_stat_start, label = stat_label),
+      hjust  = 0,
+      size   = 15,
+      colour = "grey20",
+      family = "Times New Roman"
     ) +
     
     scale_x_log10(
@@ -137,40 +172,62 @@ subtype_plot <- function(df,
       switch = "y"
     ) +
     
-    labs(x = "Hazard ratio (log scale)", y = NULL, colour = NULL) +
+    coord_cartesian(clip = "off") +
     
-    theme_classic(base_size = 11) +
+    labs(x = "Hazard ratio", y = NULL, colour = NULL) +
+    
+    theme_classic(base_size = 35, base_family = "Times New Roman") +
     theme(
       strip.placement   = "outside",
       strip.background  = element_blank(),
-      strip.text.y.left = element_text(angle = 0, hjust = 1,
-                                       face = "bold", size = 15),
-      panel.spacing     = unit(0.8, "lines"),
-      axis.text.y       = element_text(size = 12),
-      axis.line.y       = element_blank(),
-      axis.ticks.y      = element_blank(),
-      legend.position   = "none",
-      plot.margin       = margin(10, 10, 10, 10)
+      strip.text.y.left = if (show_wald) element_blank() else element_text(
+        angle  = 0,
+        hjust  = 1,
+        face   = "bold",
+        size   = 35,
+        family = "Times New Roman"
+      ),
+      panel.spacing   = unit(1.2, "lines"),
+      axis.text.y     = element_text(size = 40, family = "Times New Roman"),
+      axis.line.y     = element_blank(),
+      axis.ticks.y    = element_blank(),
+      axis.text.x     = element_text(size = 40, family = "Times New Roman"),
+      axis.title.x    = element_text(size = 40, family = "Times New Roman"),
+      legend.position = "none",
+      plot.margin     = margin(40, 10, 10, 10)  # extra top margin for headers
     )
   
-  # ── optional wald label ──────────────────────────────────────────────────────
+  # ── optional wald column header + values ────────────────────────────────────
   if (show_wald) {
+    
     wald_labels <- df %>%
       group_by(Model) %>%
       slice_tail(n = 1) %>%
-      ungroup() %>%
-      mutate(
-        wald_text = paste0("Wald p-value = ",
-                           formatC(Wald_pval, format = "f", digits = 3))
-      )
+      ungroup()
     
-    p <- p + geom_text(
-      data = wald_labels,
-      aes(x = 1, y = row_key, label = wald_text),
-      hjust = 0.5, vjust = 2.5, size = 5,
-      colour = "grey10", fontface = "italic",
-      inherit.aes = FALSE
-    )
+    p <- p +
+      # Wald column header
+      geom_text(
+        data        = header_df,
+        aes(x = x_wald_start, y = row_key, label = "Wald p-value"),
+        hjust       = 0,
+        vjust       = -1.5,
+        size        = 15,
+        colour      = "grey10",
+        fontface    = "bold",
+        family      = "Times New Roman",
+        inherit.aes = FALSE
+      ) +
+      # Wald values
+      geom_text(
+        data        = wald_labels,
+        aes(x = x_wald_start, y = row_key, label = wald_label),
+        hjust       = 0,
+        size        = 15,
+        colour      = "grey10",
+        family      = "Times New Roman",
+        inherit.aes = FALSE
+      )
   }
   
   return(p)

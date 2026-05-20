@@ -133,7 +133,10 @@ complete_cohort <- cleanexposure(data_airpollution, clean_covariates)
 complete_cohort <- complete_cohort %>%
   filter(
     !is.na(BMI)
-  ) # Do not include those who have missing BMI
+  ) %>% # Do not include those who have missing BMI
+  filter(
+    !is.na(avgP25)
+  )
 ```
 
 Analysis set up
@@ -210,10 +213,10 @@ Subtypes
 
 cohort_mensplit_nolag_changed <- cohort_mensplit %>%
   mutate(
-    avgP25 = avgP25/5,
-    avgP10 = avgP10/5,
-    pointP25 = pointP25/5,
-    pointP10 = pointP10/5
+    avgP25 = avgP25/10,
+    avgP10 = avgP10/10,
+    pointP25 = pointP25/10,
+    pointP10 = pointP10/10
   )
 
 source("GS_analysis/Script/Menopause_applied_avg_nolag.R")
@@ -226,23 +229,24 @@ source("GS_analysis/Script/LunnMcNeil_applied.R")
 subtype <- rbind(all_results, lunnmcneil_results, all_men_results, all_carstairs) %>%
   mutate(
     Subtype = case_when(
-      Subtype == "pos" ~ "Positive", 
-      Subtype == "neg" ~ "Negative ", 
+      Subtype == "Fully Adjusted" ~ "Primary Analysis",
+      Subtype == "pos" ~ "Oestrogen Receptor(ER) Positive Cancer", 
+      Subtype == "neg" ~ "Oestrogen Receptor(ER) Negative Cancer", 
       Subtype == "unk" ~ "Unknown", 
-      Subtype == "screen" ~ "Screen Detected", 
-      Subtype == "noscreen" ~ "Non Screen Detected Cancer", 
+      Subtype == "screen" ~ "Screen Detected Cancer*", 
+      Subtype == "noscreen" ~ "Non Screen Detected Cancer*", 
       Subtype == "invasive" ~ "Invasive Breast Cancer", 
       Subtype == "dcis" ~ "DCIS Breast Cancer",
-      Subtype == "pre" ~ "Premenopausal", 
-      Subtype == "post" ~ "Postmenopausal", 
-      Subtype == "1 (most)" ~ "1 (most deprived)", 
-      Subtype == "5 (least)" ~ "5 (least deprived)", 
+      Subtype == "pre" ~ "Premenopausal Women", 
+      Subtype == "post" ~ "Postmenopausal Women", 
+      Subtype == "1 (most)" ~ "Carstairs Index Decile 1 (most deprived)", 
+      Subtype == "5 (least)" ~ "Carstairs Index Decile 5 (least deprived)", 
       TRUE ~ Subtype
     ), 
     Model = case_when(
       Model == "Final_Model" ~ "Final Model", 
-      Model == "ER_Status" ~ "ER Status", 
-      Model == "Screen_Detected" ~ "Screen Detected*", 
+      Model == "ER_Status" ~ "Oestrogen Receptor (ER) Status", 
+      Model == "Screen_Detected" ~ "Mode of Detection*", 
       Model == "Invasive_DCIS" ~ "Invasive vs. DCIS", 
       Model == "Menopausal_Status" ~ "Menopausal Status", 
       TRUE ~ Model
@@ -258,16 +262,16 @@ Sensitivity Analysis
 
 source("GS_analysis/Script/QuantifyingBias.R")
 # PM10
-beta   <- P10_C$coefficients["I(avgP10/5)"]
-se     <- sqrt(vcov(P10_C)["I(avgP10/5)", "I(avgP10/5)"])
+beta   <- P10_C$coefficients["I(avgP10/10)"]
+se     <- sqrt(vcov(P10_C)["I(avgP10/10)", "I(avgP10/10)"])
 quantifybias_P10 <- measurementerror_quantification(beta, se) %>%
   mutate(
     Model = "PM 10"
   )
 
 # PM2.5
-beta   <- P25_C$coefficients["I(avgP25/5)"]
-se     <- sqrt(vcov(P25_C)["I(avgP25/5)", "I(avgP25/5)"])
+beta   <- P25_C$coefficients["I(avgP25/10)"]
+se     <- sqrt(vcov(P25_C)["I(avgP25/10)", "I(avgP25/10)"])
 quantifybias_P25 <- measurementerror_quantification(beta, se)%>%
   mutate(
     Model = "PM 2.5"
@@ -334,15 +338,18 @@ outcome <- bind_rows(nolag) %>%
       Subcategories == 0 ~ 0, 
       TRUE ~ Cases
     ),
-    `Rate per 1,000` = case_when(
-      Subcategories == 0 ~ 0, 
-      TRUE ~ `Rate per 1,000`
-    ), 
+    # `Rate per 1,000` = case_when(
+    #   Subcategories == 0 ~ 0, 
+    #   TRUE ~ `Rate per 1,000`
+    # ), 
     Subcategories = case_when(
       Subcategories == 1 ~ "Breast Cancer Case", 
       Subcategories == 0 ~ "Not Breast Cancer Case", 
       TRUE ~ "ERROR"
     )
+  )%>%
+  filter(
+    Subcategories == "Breast Cancer Case"
   )
 sensitivity <- bind_rows(twolag, fivelag) %>%
   mutate(
@@ -350,15 +357,18 @@ sensitivity <- bind_rows(twolag, fivelag) %>%
       Subcategories == 0 ~ 0, 
       TRUE ~ Cases
     ),
-    `Rate per 1,000` = case_when(
-      Subcategories == 0 ~ 0, 
-      TRUE ~ `Rate per 1,000`
-    ), 
+    # `Rate per 1,000` = case_when(
+    #   Subcategories == 0 ~ 0, 
+    #   TRUE ~ `Rate per 1,000`
+    # ), 
     Subcategories = case_when(
       Subcategories == 1 ~ "Breast Cancer Case", 
       Subcategories == 0 ~ "Not Breast Cancer Case", 
       TRUE ~ "ERROR"
     )
+  ) %>%
+  filter(
+    Subcategories == "Breast Cancer Case"
   )
 age <- covariate(complete_cohort, AgeEntry_cat)%>%
   mutate(
@@ -418,7 +428,7 @@ ER <- covariate(complete_cohort, ER_cat)%>%
 
 SCREEN <- covariate(complete_cohort, screen_detected_cat)%>%
   mutate(
-    covariate = "Screen Detected"
+    covariate = "Mode of Detection"
   )
 
 INVDCIS <- covariate(complete_cohort, inv_dcis_cat)%>%
@@ -432,7 +442,7 @@ Region <- covariate(complete_cohort, Region)%>%
   )
 
 
-table1 <- bind_rows(outcome,  meno, ER, INVDCIS, SCREEN,carstairs, Region, age, yearofentry, bmi, smoking, alcohol, education, parity, agefirstbirth, HRT, sensitivity) %>%
+table1 <- bind_rows(outcome, meno, Region, age, yearofentry, bmi, smoking, alcohol, education, carstairs, parity, agefirstbirth, HRT, ER, INVDCIS, SCREEN, sensitivity) %>%
   mutate(
       Cases = paste0(format(Cases, big.mark = ",")),
       `Person Years` = paste0(format(`Person Years`, big.mark = ","))
@@ -468,6 +478,9 @@ table1_tbl <- table1 %>%
 
 table1_tbl
 
+tmp <- tempfile(fileext = ".docx")
+gtsave(table1_tbl, tmp)
+file.copy(tmp, "GS_analysis/Figures/table1.docx", overwrite = TRUE)
 ```
 
 
@@ -475,7 +488,7 @@ table1_tbl
 
 # Figure 2: Primary and Subtype analysis in the Generations Study for PM2.5 (Panel A) and PM 10(Panel B) and Breast Cancer Incidence. 
 
-All hazard ratios calculated per 5 ug/m3 of exposure. 
+All hazard ratios calculated per 10 ug/m3 of exposure. 
 
 
 ## Panel A : PM 2.5
@@ -483,8 +496,8 @@ All hazard ratios calculated per 5 ug/m3 of exposure.
 ```{r}
 #| label: Figure 2 pan A
 #| fig-align: center
-#| fig-width: 17
-#| fig-height: 15
+#| fig-width: 45
+#| fig-height: 30
 #| warning: false
 #| echo: false
 
@@ -497,15 +510,20 @@ subtype_P25 <- subtype %>%
   ) %>%
   select(-Exposure)
 subtype_P25_plot <- subtype_plot(subtype_P25,
-         x_breaks = c(0.1, 0.3, 0.5, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, 2.5, 3.0))
+         x_breaks = c(0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5))
 
-subtype_P25_plot +
-  plot_annotation(
-    caption = "* For women in England who are eligible for screening (Ages 50–71) only",
-    theme = theme(
-      plot.caption = element_text(size = 15, hjust = 0)
-    )
-  )
+subtype_P25_plot_clean <- subtype_P25_plot 
+subtype_P25_plot_clean
+
+ggsave(
+  filename = "GS_analysis/Figures/PM25_subtype.png",
+  plot     = subtype_P25_plot_clean,
+  width    = 40,
+  height   = 30,
+  dpi      = 300,
+  bg       = "white"
+)
+
 ```
 
 
@@ -514,8 +532,8 @@ subtype_P25_plot +
 ```{r}
 #| label: Figure 2 pan B
 #| fig-align: center
-#| fig-width: 16
-#| fig-height: 15
+#| fig-width: 40
+#| fig-height: 30
 #| warning: false
 #| echo: false
 
@@ -528,20 +546,26 @@ subtype_P10 <- subtype %>%
   ) %>%
   select(-Exposure)
 subtype_P10_plot <- subtype_plot(subtype_P10,
-         x_breaks = c(0.1, 0.3, 0.5, 0.8, 0.9, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0))
+         x_breaks = c(0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5))
 
-subtype_P10_plot+
-  plot_annotation(
-    caption = "* For women in England who are eligible for screening (Ages 50–71) only",
-    theme = theme(
-      plot.caption = element_text(size = 15, hjust = 0)
-    )
-  )
+subtype_P10_plot_clean <- subtype_P10_plot
+
+subtype_P10_plot_clean
+
+ggsave(
+  filename = "GS_analysis/Figures/PM10_subtype.png",
+  plot     = subtype_P10_plot_clean,
+  width    = 40,
+  height   = 30,
+  dpi      = 300,
+  bg       = "white"
+)
+
 ```
 
 
 # Supplementary Figure 1: Sensitivity analysis on the primary outcome in the Generations Study for PM2.5 (Panel A) and PM 10(Panel B) and Breast Cancer Incidence. 
-All hazard ratios calculated per 5 ug/m3 of exposure.
+All hazard ratios calculated per 10 ug/m3 of exposure.
 
 ## Panel A: PM 2.5 
 
@@ -549,8 +573,8 @@ All hazard ratios calculated per 5 ug/m3 of exposure.
 ```{r}
 #| label: Supp Fig 1 panel A
 #| fig-align: center
-#| fig-width: 15
-#| fig-height: 15
+#| fig-width: 30
+#| fig-height: 20
 #| warning: false
 #| echo: false
 
@@ -570,8 +594,19 @@ sensitivity_P25_clean <- sensitivity_all %>%
     Model, Subtype, HR, CI_lower, CI_upper, Pval
   )
   
-sensitivity_P25_plot <- subtype_plot(sensitivity_P25_clean, show_wald = FALSE)
+sensitivity_P25_plot <- subtype_plot(sensitivity_P25_clean, 
+                                     show_wald = FALSE,
+                                     x_breaks = c(0.1, 0.5, 1.0, 1.25, 1.5))
 sensitivity_P25_plot
+
+ggsave(
+  filename = "GS_analysis/Figures/PM25_sensitivity.png",
+  plot     = sensitivity_P25_plot,
+  width    = 30,
+  height   = 20,
+  dpi      = 300,
+  bg       = "white"
+)
 ```
 
 
@@ -580,8 +615,8 @@ sensitivity_P25_plot
 ```{r}
 #| label: Supp Fig 1 panel B
 #| fig-align: center
-#| fig-width: 15
-#| fig-height: 15
+#| fig-width: 30
+#| fig-height: 20
 #| warning: false
 #| echo: false
 
@@ -601,8 +636,19 @@ sensitivity_P10_clean <- sensitivity_all %>%
     Model, Subtype, HR, CI_lower, CI_upper, Pval
   )
   
-sensitivity_P10_plot <- subtype_plot(sensitivity_P10_clean, show_wald = FALSE)
+sensitivity_P10_plot <- subtype_plot(sensitivity_P10_clean, 
+                                     show_wald = FALSE,
+                                     x_breaks = c(0.1, 0.5, 1.0, 1.25, 1.5))
 sensitivity_P10_plot
+
+ggsave(
+  filename = "GS_analysis/Figures/PM10_sensitivity.png",
+  plot     = sensitivity_P10_plot,
+  width    = 30,
+  height   = 20,
+  dpi      = 300,
+  bg       = "white"
+)
 ```
 
 
@@ -610,7 +656,7 @@ sensitivity_P10_plot
 
 # Supplementary Table 3: Primary and subtype analysis in the Generations Study for PM2.5 and PM10 and breast cancer incidence. 
 
-All hazard ratios calculated per 5 ug/m3 of exposure. For Primary Analysis, Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)
+All hazard ratios calculated per 10 ug/m3 of exposure. For Primary Analysis, Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)
 
 
 ```{r}
@@ -663,7 +709,7 @@ subtype_clean %>%
 
 
 # Supplementary Table 4: Sensitivity analysis on the primary outcome in the Generations Study for PM2.5 and PM 10 and Breast Cancer Incidence. 
-All hazard ratios calculated per 5 ug/m3 of exposure.
+All hazard ratios calculated per 10 ug/m3 of exposure.
 
 
 ```{r}

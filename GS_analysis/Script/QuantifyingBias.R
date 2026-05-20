@@ -4,12 +4,12 @@
 
 # Air pollution modelling 
 P10_C <- coxph(
-  Surv(tstart, tstop, outcome) ~ I(avgP10 / 5) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+  Surv(tstart, tstop, outcome) ~ I(avgP10 / 10) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
   data = cohort_mensplit
 )
 
 P25_C <- coxph(
-  Surv(tstart, tstop, outcome) ~ I(avgP25 / 5) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+  Surv(tstart, tstop, outcome) ~ I(avgP25 / 10) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
   data = cohort_mensplit
 )
 

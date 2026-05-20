@@ -49,14 +49,14 @@ covariate <- function(dataset, covar) {
       sd_PM10 = round(sd_PM10, 2), 
       
       
-      `PM2.5(SD)` = paste0(
+      `PM2.5 mean(SD)` = paste0(
         round(mean_PM25, 2),
         " (",
         round(sd_PM25, 2),
         ")"
       ),
       
-      `PM10(SD)` = paste0(
+      `PM10 mean(SD)` = paste0(
         round(mean_PM10, 2),
         " (",
         round(sd_PM10, 2),
@@ -69,9 +69,9 @@ covariate <- function(dataset, covar) {
       `Count (%)`,
       Cases,
       `Person Years`,
-      `Rate per 1,000`,
-      `PM2.5(SD)`,
-      `PM10(SD)`
+      #`Rate per 1,000`,
+      `PM2.5 mean(SD)`,
+      `PM10 mean(SD)`
     )
   
   return(final)
