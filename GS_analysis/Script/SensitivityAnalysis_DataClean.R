@@ -239,20 +239,20 @@ data_prep <- function(data, title = "UNDEFINED",redefined = F, lag = "none", exp
   
   if (exposure == "average"){
   P10_C <- coxph(
-    Surv(tstart, tstop, outcome) ~ I(avgP10 / 5) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+    Surv(tstart, tstop, outcome) ~ I(avgP10 / 10) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
     data = cohort_mensplit
   )
   P25_C <- coxph(
-    Surv(tstart, tstop, outcome) ~ I(avgP25 / 5) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+    Surv(tstart, tstop, outcome) ~ I(avgP25 / 10) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
     data = cohort_mensplit
   )
   } else if (exposure == "point") {
     P10_C <- coxph(
-      Surv(tstart, tstop, outcome) ~ I(pointP10 / 5) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+      Surv(tstart, tstop, outcome) ~ I(pointP10 / 10) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
       data = cohort_mensplit
     )
     P25_C <- coxph(
-      Surv(tstart, tstop, outcome) ~ I(pointP25 / 5) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
+      Surv(tstart, tstop, outcome) ~ I(pointP25 / 10) + matchyear_cat + BMI + Carstairs_quint+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf + cluster(TCode),
       data = cohort_mensplit
     )
   } else{
@@ -308,11 +308,11 @@ data_prep <- function(data, title = "UNDEFINED",redefined = F, lag = "none", exp
 sensitivity_covariate <- function(covariate, title = "NOT DEFINED") {
   
   fml_P10 <- as.formula(
-    paste("Surv(tstart, tstop, outcome) ~ I(avgP10 / 5) +", covariate, "+ cluster(TCode)")
+    paste("Surv(tstart, tstop, outcome) ~ I(avgP10 / 10) +", covariate, "+ cluster(TCode)")
   )
   
   fml_P25 <- as.formula(
-    paste("Surv(tstart, tstop, outcome) ~ I(avgP25 / 5) +", covariate, "+ cluster(TCode)")
+    paste("Surv(tstart, tstop, outcome) ~ I(avgP25 / 10) +", covariate, "+ cluster(TCode)")
   )
   
   P10_C <- coxph(fml_P10, data = cohort_mensplit)
