@@ -2,28 +2,28 @@ proportionalhazards <- function (inputdata, meno_inputdata){
   # No lag point models
   
   P25_A <- coxph(
-    Surv(age_start365/365, c_age365/365, bc_nolag) ~ I(avgP25 / 5) + matchyear_cat,
+    Surv(age_start365/365, c_age365/365, bc_nolag) ~ I(avgP25 / 10) + matchyear_cat,
     data = inputdata
   )
   P25_B <- coxph(
-    Surv(age_start365/365, c_age365/365, bc_nolag) ~ I(avgP25 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat,
+    Surv(age_start365/365, c_age365/365, bc_nolag) ~ I(avgP25 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat,
     data = inputdata
   )
   P25_C <- coxph(
-    Surv(tstart/365, tstop/365, outcome) ~ I(avgP25 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf,
+    Surv(tstart/365, tstop/365, outcome) ~ I(avgP25 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf,
     data = meno_inputdata
   )
   
   P10_A <- coxph(
-    Surv(age_start365/365, c_age365/365, bc_nolag) ~ I(avgP10 / 5) + matchyear_cat,
+    Surv(age_start365/365, c_age365/365, bc_nolag) ~ I(avgP10 / 10) + matchyear_cat,
     data = inputdata
   )
   P10_B <- coxph(
-    Surv(age_start365/365, c_age365/365, bc_nolag) ~ I(avgP10 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat,
+    Surv(age_start365/365, c_age365/365, bc_nolag) ~ I(avgP10 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat,
     data = inputdata
   )
   P10_C <- coxph(
-    Surv(tstart/365, tstop/365, outcome) ~ I(avgP10 / 5) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf,
+    Surv(tstart/365, tstop/365, outcome) ~ I(avgP10 / 10) + matchyear_cat + BMI + Carstairs_cat+Smoking_cat+Alcohol_cat+Educ_cat+Parity_cat+Birth1_age_cat+HRT_cat+menobandf,
     data = meno_inputdata
   )
   
