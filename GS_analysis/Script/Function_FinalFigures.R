@@ -64,9 +64,9 @@ subtype_plot <- function(df,
   # ── prep ────────────────────────────────────────────────────────────────────
   
   if (show_wald == TRUE) {
-    model_levels <- c("Final Model", "Menopausal Status", "Carstairs Index", "Oestrogen Receptor (ER) Status", "Invasive vs. DCIS", "Mode of Detection*")
+    model_levels <- c("Final Model", "Menopausal Status", "Carstairs Index", "Oestrogen Receptor (ER) Status", "Invasive vs. DCIS", "Mode of Detection")
   } else {
-    model_levels <- c("Point Exposure", "2 year time lag", "5 year time lag", "EXPANSE Model Accuracy", "Addresses at the Household Level Only", "Single Covariate Analysis")
+    model_levels <- c( "EXPANSE Model Accuracy", "Point Exposure", "Addresses at the Household Level Only", "2 year time lag", "5 year time lag", "Never Smokers Only", "Single Covariate Analysis")
   }
   
   df <- df %>%

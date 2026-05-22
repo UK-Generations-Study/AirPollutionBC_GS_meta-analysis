@@ -97,52 +97,55 @@ data_prep <- function(data, title = "UNDEFINED",redefined = F, lag = "none", exp
       meno_age_est = as.numeric(meno_age_est)
     ) 
   
-  if(lag == "none") {
+  if(lag == "none" & redefined == F) {
   
-  # Menopausal time split
-  cohort_mensplit <- complete_cohort %>% 
-    mutate(
-      # turn to age in days (no leap years) -- missing becomes 51 * 365
-      # add 182 days
-      age_meno365 = ifelse((meno_age_est > 12) & (meno_age_est < 60),
-                           (meno_age_est * 365) + 182,
-                           (51 * 365) + 182),
-      # if reason for menopause is related to breast cancer treatment then
-      # push age up by one year so it comes after cancer
-      # i.e. after censoring, so remains premenopausal at censoring/diagnosis
-      # regardless of how much was added on
-      age_meno365 = ifelse((event == 1) &
-                             (trunc(age_meno365 / 365) ==
-                                trunc(c_age365 / 365)) &
-                             (meno_reason %in% c(2, 5)),
-                           #                               (meno_reason %in% c(2, 3, 4, 5, 6)),
-                           age_meno365 + (365 * 1),
-                           age_meno365)
-    )
-  
-  # Setting up the base cohort split
-  cohort_mensplit <- tmerge(data1 = cohort_mensplit, data2 = cohort_mensplit,
-                            id = TCode, tstart = age_start365, tstop = c_age365,
-                            outcome = event(c_age365, event))
-  
-  # Splitting the cohort by menopause
-  times <- cohort_mensplit[, c("TCode", "age_meno365")]
-  cohort_mensplit <- tmerge(data1 = cohort_mensplit, data2 = times,
-                            id = TCode, menoband = tdc(age_meno365))
-  
-  # Adding menopausal labels
-  meno_labels <- c("premenopausal", "postmenopausal")
-  cohort_mensplit$menobandf <- factor(cohort_mensplit$menoband,
-                                      levels = 0:1,
-                                      labels = meno_labels)
-  
-  # Adjusting follow up time for each row
-  cohort_mensplit <- cohort_mensplit %>%
-    mutate(
-      interval_days = tstop - tstart,
-      p_years = interval_days / 365, 
-      followup_year = floor((tstart - age_start365) / 365)
-    )
+    cohort_mensplit <- data_clean
+    
+  } else if(lag == "none" & redefined == T) {
+    # Menopausal time split
+    cohort_mensplit <- complete_cohort %>% 
+      mutate(
+        # turn to age in days (no leap years) -- missing becomes 51 * 365
+        # add 182 days
+        age_meno365 = ifelse((meno_age_est > 12) & (meno_age_est < 60),
+                             (meno_age_est * 365) + 182,
+                             (51 * 365) + 182),
+        # if reason for menopause is related to breast cancer treatment then
+        # push age up by one year so it comes after cancer
+        # i.e. after censoring, so remains premenopausal at censoring/diagnosis
+        # regardless of how much was added on
+        age_meno365 = ifelse((event == 1) &
+                               (trunc(age_meno365 / 365) ==
+                                  trunc(c_age365 / 365)) &
+                               (meno_reason %in% c(2, 5)),
+                             #                               (meno_reason %in% c(2, 3, 4, 5, 6)),
+                             age_meno365 + (365 * 1),
+                             age_meno365)
+      )
+    
+    # Setting up the base cohort split
+    cohort_mensplit <- tmerge(data1 = cohort_mensplit, data2 = cohort_mensplit,
+                              id = TCode, tstart = age_start365, tstop = c_age365,
+                              outcome = event(c_age365, event))
+    
+    # Splitting the cohort by menopause
+    times <- cohort_mensplit[, c("TCode", "age_meno365")]
+    cohort_mensplit <- tmerge(data1 = cohort_mensplit, data2 = times,
+                              id = TCode, menoband = tdc(age_meno365))
+    
+    # Adding menopausal labels
+    meno_labels <- c("premenopausal", "postmenopausal")
+    cohort_mensplit$menobandf <- factor(cohort_mensplit$menoband,
+                                        levels = 0:1,
+                                        labels = meno_labels)
+    
+    # Adjusting follow up time for each row
+    cohort_mensplit <- cohort_mensplit %>%
+      mutate(
+        interval_days = tstop - tstart,
+        p_years = interval_days / 365, 
+        followup_year = floor((tstart - age_start365) / 365)
+      )
   } else if(lag == "2 lag") {
     # Menopausal time split
     cohort_mensplit <- complete_cohort_2lag %>% 
@@ -386,10 +389,21 @@ sensitivity_household <- data_prep(clean_onlyHH_GS, "Addresses at the Household 
 # sensitivity_nomove <- data_prep(clean_nomove_GS, "Participants who did not move Only", redefined = T)
 
 ## Point Exposure
-sensitivity_point <- data_prep(complete_cohort, "Point Exposure", exposure = "point")
+sensitivity_point <- data_prep(cohort_mensplit, "Point Exposure", exposure = "point")
 
 ## 2 lag
 sensitivity_2lag <- data_prep(complete_cohort, "2 year time lag", lag = "2 lag")
 
 ## 5 lag
 sensitivity_5lag <- data_prep(complete_cohort, "5 year time lag", lag = "5 lag")
+
+## Neversmokers
+
+neversmokers <- cohort_mensplit %>%
+  filter(
+    Smoking_cat == "Never"
+  )
+sensitivity_neversmokers <- data_prep(neversmokers, "Never Smokers Only")
+
+
+
