@@ -70,12 +70,31 @@ covariate <- function(dataset, covar) {
       Cases,
       `Person Years`,
       #`Rate per 1,000`,
-      `PM2.5 mean(SD)`,
-      `PM10 mean(SD)`
+      #`PM2.5 mean(SD)`,
+      #`PM10 mean(SD)`
     )
   
   return(final)
 }
+
+continuous_covar <- function(dataset, var, label) {
+  dataset %>%
+    summarise(
+      covariate    = label,
+      `Exposure mean(SD)` = paste0(
+        round(mean({{ var }}, na.rm = TRUE), 2),
+        " (",
+        round(sd({{ var }}, na.rm = TRUE), 2),
+        ")"
+      ),
+      `Count (%)`  = NA_character_,
+      Cases        = NA_integer_,
+      `Person Years` = NA_real_
+    )
+}
+
+
+
 
 menarcheage_sensible_range <- FALSE
 

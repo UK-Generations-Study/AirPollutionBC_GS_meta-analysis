@@ -54,19 +54,19 @@ full_cohort_plot <- function(data, lag_value, exp_def, plot_title = NULL) {
 }
 
 ###################################################################
-# Subtype Plot
 subtype_plot <- function(df,
                          x_breaks = c(0.5, 0.8, 0.9, 1.0, 1.2, 1.4),
                          show_wald = TRUE,
-                         plot_width = 20,
-                         plot_height = NULL) {
+                         plot_width = 40,
+                         plot_height = NULL,
+                         base_size = 21) {
   
   # ── prep ────────────────────────────────────────────────────────────────────
   
   if (show_wald == TRUE) {
-    model_levels <- c("Final Model", "Menopausal Status", "Carstairs Index", "Oestrogen Receptor (ER) Status", "Invasive vs. DCIS", "Mode of Detection")
+    model_levels <- c("Overall Association", "Menopausal Status", "Socioeconomic Status", "Oestrogen Receptor (ER) Status", "Invasiveness", "Mode of Detection")
   } else {
-    model_levels <- c( "EXPANSE Model Accuracy", "Point Exposure", "Addresses at the Household Level Only", "2 year time lag", "5 year time lag", "Never Smokers Only", "Single Covariate Analysis")
+    model_levels <- c("EXPANSE Model Accuracy", "Point Exposure", "Addresses at the Household Level Only", "2 year time lag", "5 year time lag", "Never Smokers Only", "Single Covariate Analysis")
   }
   
   df <- df %>%
@@ -78,7 +78,7 @@ subtype_plot <- function(df,
         formatC(Pval,     format = "f", digits = 3)
       ),
       wald_label = if (show_wald) {
-        paste0("Wald p=", formatC(Wald_pval, format = "f", digits = 3))
+        paste0("", formatC(Wald_pval, format = "f", digits = 3))
       } else {
         NA_character_
       },
@@ -101,18 +101,19 @@ subtype_plot <- function(df,
     max(df$CI_upper, na.rm = TRUE) * 1.15
   )
   
-  x_stat_start <- max(x_limits) * 1.02
-  x_wald_start <- max(x_limits) * 2.80
-  x_text_max   <- max(x_limits) * 4.80
+  # ── fixed text positions (on log10 scale, data-independent) ─────────────────
+  x_stat_start <- if (show_wald) 2.6 else 1.8
+  x_wald_start <- 5.8
+  x_text_max   <- if (show_wald) 9.0 else 7.0
   
   # ── black and white: all markers black ──────────────────────────────────────
   models       <- unique(df$Model)
   model_colors <- setNames(rep("black", length(models)), models)
   
   # ── header anchor: top row of the first (top) facet ─────────────────────────
-  top_model  <- levels(df$Model)[1]
-  top_row    <- df %>% filter(Model == top_model) %>% slice(1) %>% pull(row_key)
-  header_df  <- data.frame(row_key = top_row, Model = top_model) %>%
+  top_model <- df %>% filter(!is.na(Model)) %>% pull(Model) %>% droplevels() %>% levels() %>% first()
+  top_row   <- df %>% filter(Model == top_model) %>% slice(1) %>% pull(row_key)
+  header_df <- data.frame(row_key = top_row, Model = top_model) %>%
     mutate(row_key = factor(row_key, levels = levels(df$row_key)),
            Model   = factor(Model,   levels = levels(df$Model)))
   
@@ -137,10 +138,10 @@ subtype_plot <- function(df,
     # ── HR (95% CI) p= column header ──────────────────────────────────────────
     geom_text(
       data        = header_df,
-      aes(x = x_stat_start, y = row_key, label = "HR (95% CI)  p-value"),
+      aes(x = x_stat_start, y = row_key, label = "HR (95% CI)       p-value"),
       hjust       = 0,
       vjust       = -1.5,
-      size        = 15,
+      size        = 9,
       colour      = "grey10",
       fontface    = "bold",
       family      = "Times New Roman",
@@ -151,7 +152,7 @@ subtype_plot <- function(df,
     geom_text(
       aes(x = x_stat_start, label = stat_label),
       hjust  = 0,
-      size   = 15,
+      size   = 9,
       colour = "grey20",
       family = "Times New Roman"
     ) +
@@ -174,27 +175,27 @@ subtype_plot <- function(df,
     
     coord_cartesian(clip = "off") +
     
-    labs(x = "Hazard ratio", y = NULL, colour = NULL) +
+    labs(x = "Hazard ratio and 95% confidence interval", y = NULL, colour = NULL) +
     
-    theme_classic(base_size = 35, base_family = "Times New Roman") +
+    theme_classic(base_size = base_size, base_family = "Times New Roman") +
     theme(
       strip.placement   = "outside",
       strip.background  = element_blank(),
-      strip.text.y.left = if (show_wald) element_blank() else element_text(
+      strip.text.y.left = element_text(
         angle  = 0,
         hjust  = 1,
         face   = "bold",
-        size   = 35,
+        size   = 24,
         family = "Times New Roman"
       ),
       panel.spacing   = unit(1.2, "lines"),
-      axis.text.y     = element_text(size = 40, family = "Times New Roman"),
+      axis.text.y     = element_text(size = 24, family = "Times New Roman"),
       axis.line.y     = element_blank(),
       axis.ticks.y    = element_blank(),
-      axis.text.x     = element_text(size = 40, family = "Times New Roman"),
-      axis.title.x    = element_text(size = 40, family = "Times New Roman"),
+      axis.text.x     = element_text(size = 24, family = "Times New Roman"),
+      axis.title.x    = element_text(size = 24, family = "Times New Roman"),
       legend.position = "none",
-      plot.margin     = margin(40, 10, 10, 10)  # extra top margin for headers
+      plot.margin     = margin(40, 10, 10, 10)
     )
   
   # ── optional wald column header + values ────────────────────────────────────
@@ -203,16 +204,17 @@ subtype_plot <- function(df,
     wald_labels <- df %>%
       group_by(Model) %>%
       slice_tail(n = 1) %>%
-      ungroup()
+      ungroup() %>%
+      filter(!is.na(Wald_pval))
     
     p <- p +
       # Wald column header
       geom_text(
         data        = header_df,
-        aes(x = x_wald_start, y = row_key, label = "Wald p-value"),
+        aes(x = x_wald_start, y = row_key, label = "p-heterogeneity"),
         hjust       = 0,
         vjust       = -1.5,
-        size        = 15,
+        size        = 9,
         colour      = "grey10",
         fontface    = "bold",
         family      = "Times New Roman",
@@ -223,7 +225,7 @@ subtype_plot <- function(df,
         data        = wald_labels,
         aes(x = x_wald_start, y = row_key, label = wald_label),
         hjust       = 0,
-        size        = 15,
+        size        = 9,
         colour      = "grey10",
         family      = "Times New Roman",
         inherit.aes = FALSE

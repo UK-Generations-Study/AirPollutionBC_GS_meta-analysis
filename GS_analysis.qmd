@@ -229,7 +229,7 @@ source("GS_analysis/Script/LunnMcNeil_applied.R")
 subtype <- rbind(all_results, lunnmcneil_results, all_men_results, all_carstairs) %>%
   mutate(
     Subtype = case_when(
-      Subtype == "Fully Adjusted" ~ "Primary Analysis",
+      Subtype == "Fully Adjusted" ~ " ",
       Subtype == "pos" ~ "Oestrogen Receptor(ER) Positive Cancer", 
       Subtype == "neg" ~ "Oestrogen Receptor(ER) Negative Cancer", 
       Subtype == "unk" ~ "Unknown", 
@@ -239,16 +239,17 @@ subtype <- rbind(all_results, lunnmcneil_results, all_men_results, all_carstairs
       Subtype == "dcis" ~ "DCIS Breast Cancer",
       Subtype == "pre" ~ "Premenopausal Women", 
       Subtype == "post" ~ "Postmenopausal Women", 
-      Subtype == "1 (most)" ~ "Carstairs Index Decile 1 (most deprived)", 
-      Subtype == "5 (least)" ~ "Carstairs Index Decile 5 (least deprived)", 
+      Subtype == "1 (most)" ~ "Carstairs Index Quintile 1 (most deprived)", 
+      Subtype == "5 (least)" ~ "Carstairs Index Quintile 5 (least deprived)", 
       TRUE ~ Subtype
     ), 
     Model = case_when(
-      Model == "Final_Model" ~ "Final Model", 
+      Model == "Final_Model" ~ "Overall Association", 
       Model == "ER_Status" ~ "Oestrogen Receptor (ER) Status", 
       Model == "Screen_Detected" ~ "Mode of Detection", 
-      Model == "Invasive_DCIS" ~ "Invasive vs. DCIS", 
+      Model == "Invasive_DCIS" ~ "Invasiveness", 
       Model == "Menopausal_Status" ~ "Menopausal Status", 
+      Model == "Carstairs Index" ~ "Socioeconomic Status",
       TRUE ~ Model
     )
   )
@@ -314,24 +315,31 @@ sensitivity_all <- bind_rows(
 
 
 
-# Table 1: Data Description
+# Supp Table 1: Breast Cancer Description
 
 ```{r}
 #| label: Table 1
 #| warning: false
 #| echo: false
 
+PM25 <- continuous_covar(complete_cohort, avgP25, "PM2.5 (mean (SD))") %>%
+  mutate(
+    Subcategories = "PM 2.5"
+  )
+PM10 <- continuous_covar(complete_cohort, avgP10, "PM10 (mean (SD))")%>%
+  mutate(
+    Subcategories = "PM 10"
+  )
+
+Exposure <- bind_rows(PM25, PM10) %>%
+  mutate(
+    covariate = "Exposure"
+  )
+
+
 nolag <- covariate(complete_cohort, bc_nolag) %>%
   mutate(
     covariate = "Full Cohort"
-  )
-twolag <- covariate(complete_cohort, bc_2lag)%>%
-  mutate(
-    covariate = "Sensitivity Cohort: 2 year time lag"
-  )
-fivelag <- covariate(complete_cohort, bc_5lag)%>%
-  mutate(
-    covariate = "Sensitivity Cohort: 5 year time lag"
   )
 
 outcome <- bind_rows(nolag) %>%
@@ -340,41 +348,21 @@ outcome <- bind_rows(nolag) %>%
       Subcategories == 0 ~ 0, 
       TRUE ~ Cases
     ),
-    # `Rate per 1,000` = case_when(
-    #   Subcategories == 0 ~ 0, 
-    #   TRUE ~ `Rate per 1,000`
-    # ), 
     Subcategories = case_when(
-      Subcategories == 1 ~ "Breast Cancer Case", 
-      Subcategories == 0 ~ "Not Breast Cancer Case", 
+      Subcategories == 1 ~ "Breast cancer cases", 
+      Subcategories == 0 ~ "Non-event", 
       TRUE ~ "ERROR"
     )
-  )%>%
-  filter(
-    Subcategories == "Breast Cancer Case"
   )
-sensitivity <- bind_rows(twolag, fivelag) %>%
+
+exp <- covariate(complete_cohort, avgP25) %>%
   mutate(
-    Cases = case_when(
-      Subcategories == 0 ~ 0, 
-      TRUE ~ Cases
-    ),
-    # `Rate per 1,000` = case_when(
-    #   Subcategories == 0 ~ 0, 
-    #   TRUE ~ `Rate per 1,000`
-    # ), 
-    Subcategories = case_when(
-      Subcategories == 1 ~ "Breast Cancer Case", 
-      Subcategories == 0 ~ "Not Breast Cancer Case", 
-      TRUE ~ "ERROR"
-    )
-  ) %>%
-  filter(
-    Subcategories == "Breast Cancer Case"
+    covariate = "Exposure"
   )
+
 age <- covariate(complete_cohort, AgeEntry_cat)%>%
   mutate(
-    covariate = "Age at study entry"
+    covariate = "Age at study entry, years"
   )
 yearofentry <- covariate(complete_cohort, matchyear_cat)%>%
   mutate(
@@ -383,19 +371,19 @@ yearofentry <- covariate(complete_cohort, matchyear_cat)%>%
 
 carstairs <- covariate(complete_cohort, Carstairs_quint)%>%
   mutate(
-    covariate = "Carstairs index"
+    covariate = "Carstairs deprivation index quintiles at study entry*"
   )
 bmi <- covariate(complete_cohort, BMI_cat)%>%
   mutate(
-    covariate = "Body Mass Index (BMI)"
+    covariate = "Body mass index (BMI)"
   )
 smoking <- covariate(complete_cohort, Smoking_cat)%>%
   mutate(
-    covariate = "Smoking"
+    covariate = "Smoking status"
   )
 alcohol <- covariate(complete_cohort, Alcohol_cat)%>%
   mutate(
-    covariate = "Alcohol"
+    covariate = "Alcohol intake"
   )
 education <- covariate(complete_cohort, Educ_cat)%>%
   mutate(
@@ -409,15 +397,15 @@ parity <- covariate(complete_cohort, Parity_cat)%>%
 
 agefirstbirth <- covariate(complete_cohort, Birth1_age_cat)%>%
   mutate(
-    covariate = "Age at first birth"
+    covariate = "Age at first birth, years"
   )
 HRT <- covariate(complete_cohort, HRT_cat)%>%
   mutate(
-    covariate = "Hormone replacement therapy (HRT)"
+    covariate = "Menopausal hormone therapy (MHT) use"
   )
 meno <- covariate(cohort_mensplit, Menopause_cat)%>%
   mutate(
-    covariate = "Menopause", 
+    covariate = "Menopause status at study entry", 
     Subcategories = case_when(
       is.na(Subcategories) ~ "Unknown", 
       TRUE ~ Subcategories
@@ -425,32 +413,47 @@ meno <- covariate(cohort_mensplit, Menopause_cat)%>%
   )
 ER <- covariate(complete_cohort, ER_cat)%>%
   mutate(
-    covariate = "Oestrogen Receptor (ER) status"
+    covariate = "Oestrogen Receptor (ER) status for invasive breast cancer cases"
+  ) %>%
+  filter(
+    Subcategories != "Nonevent"
   )
 
 SCREEN <- covariate(complete_cohort, screen_detected_cat)%>%
   mutate(
-    covariate = "Mode of Detection"
+    covariate = "Mode of detection for women undergoing mammography screening"
+  )%>%
+  filter(
+    Subcategories != "Nonevent"
+  ) %>%
+  mutate(
+    Subcategories = case_when(
+      Subcategories == "Unknown" ~ "Not applicable", 
+      TRUE ~ Subcategories
+    )
   )
 
 INVDCIS <- covariate(complete_cohort, inv_dcis_cat)%>%
   mutate(
-    covariate = "Invasive or DCIS Breast Cancer"
+    covariate = "Breast cancer invasiveness"
+  )%>%
+  filter(
+    Subcategories != "Nonevent"
   )
 
 Region <- covariate(complete_cohort, Region)%>%
   mutate(
-    covariate = "UK Country"
+    covariate = "UK Nation"
   )
 
 
-table1 <- bind_rows(outcome, Region, age, yearofentry, bmi, smoking, alcohol, education, carstairs, meno, parity, agefirstbirth, HRT, ER, INVDCIS, SCREEN, sensitivity) %>%
+supptable1 <- bind_rows(outcome, Region, HRT, INVDCIS, ER, SCREEN) %>%
   mutate(
       Cases = paste0(format(Cases, big.mark = ",")),
       `Person Years` = paste0(format(`Person Years`, big.mark = ","))
   )
 
-table1_tbl <- table1 %>%
+supptable1_tbl <- supptable1 %>%
     group_by(covariate) %>%
     gt(rowname_col = NULL) %>%
     # Center everything
@@ -475,8 +478,58 @@ table1_tbl <- table1 %>%
     ) %>%
     # Add title
     tab_header(
-      title = "Table 1: Generations Study Cohort Data Description")
+      title = "Supplementary Table 1: Generations Study Cohort Breast Cancer Description")
     
+
+supptable1_tbl
+
+ tmp <- tempfile(fileext = ".docx")
+gtsave(supptable1_tbl, tmp)
+file.copy(tmp, "GS_analysis/Figures/supptable1.docx", overwrite = TRUE)
+```
+
+# Table 1: Baseline Characteristics Description
+```{r}
+table1 <- bind_rows(Exposure, age, yearofentry, bmi, smoking, alcohol, education, carstairs, meno, parity, agefirstbirth, HRT ) %>%
+  mutate(
+      Cases = paste0(format(Cases, big.mark = ",")),
+      `Person Years` = paste0(format(`Person Years`, big.mark = ","))
+  )
+
+table1_tbl <- table1 %>%
+  group_by(covariate) %>%
+  gt(rowname_col = NULL) %>%
+    cols_move_to_start(
+    columns = c(Subcategories, `Exposure mean(SD)`, `Count (%)`, Cases, `Person Years`)
+  ) %>%
+    sub_missing(
+    columns = c(Subcategories, `Exposure mean(SD)`, `Count (%)`, Cases, `Person Years`),
+    missing_text = "-"
+  ) %>%
+    cols_align(
+    align   = "center",
+    columns = everything()
+  ) %>%
+    cols_align(
+    align   = "left",
+    columns = Subcategories
+  ) %>%
+    tab_style(
+    style     = cell_text(weight = "bold"),
+    locations = cells_column_labels()
+  ) %>%
+    tab_style(
+    style = list(
+      cell_text(weight = "bold"),
+      cell_fill(color = "lightgray"),
+      cell_borders(sides = "top"),
+      cell_borders(sides = "bottom")
+    ),
+    locations = cells_row_groups(groups = everything())
+  ) %>%
+    tab_header(
+    title = "Table 1: Generations Study Cohort Baseline Data Description"
+  )
 
 table1_tbl
 
@@ -484,8 +537,6 @@ tmp <- tempfile(fileext = ".docx")
 gtsave(table1_tbl, tmp)
 file.copy(tmp, "GS_analysis/Figures/table1.docx", overwrite = TRUE)
 ```
-
-
 
 
 # Figure 2: Primary and Subtype analysis in the Generations Study for PM2.5 (Panel A) and PM 10(Panel B) and Breast Cancer Incidence. 
@@ -498,8 +549,8 @@ All hazard ratios calculated per 10 ug/m3 of exposure.
 ```{r}
 #| label: Figure 2 pan A
 #| fig-align: center
-#| fig-width: 45
-#| fig-height: 30
+#| fig-width: 35
+#| fig-height: 16
 #| warning: false
 #| echo: false
 
@@ -512,7 +563,9 @@ subtype_P25 <- subtype %>%
   ) %>%
   select(-Exposure)
 subtype_P25_plot <- subtype_plot(subtype_P25,
-         x_breaks = c(0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5))
+         x_breaks = c(0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5),
+                                  base_size = 20)
+
 
 subtype_P25_plot_clean <- subtype_P25_plot 
 subtype_P25_plot_clean
@@ -520,10 +573,11 @@ subtype_P25_plot_clean
 ggsave(
   filename = "GS_analysis/Figures/PM25_subtype.png",
   plot     = subtype_P25_plot_clean,
-  width    = 40,
-  height   = 30,
-  dpi      = 300,
-  bg       = "white"
+  width    = 35,
+  height   = 16,
+  dpi      = 500,
+  bg       = "white", 
+  limitsize = FALSE
 )
 
 ```
@@ -534,10 +588,12 @@ ggsave(
 ```{r}
 #| label: Figure 2 pan B
 #| fig-align: center
-#| fig-width: 40
-#| fig-height: 30
+#| fig-width: 35
+#| fig-height: 16
 #| warning: false
 #| echo: false
+#| out-width: "100%"
+#| fig-margin: !expr c(0, 0, 0, 0)
 
 subtype_P10 <- subtype %>%
   filter(
@@ -548,7 +604,8 @@ subtype_P10 <- subtype %>%
   ) %>%
   select(-Exposure)
 subtype_P10_plot <- subtype_plot(subtype_P10,
-         x_breaks = c(0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5))
+                                 x_breaks = c(0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5),
+                                  base_size = 18)
 
 subtype_P10_plot_clean <- subtype_P10_plot
 
@@ -557,10 +614,11 @@ subtype_P10_plot_clean
 ggsave(
   filename = "GS_analysis/Figures/PM10_subtype.png",
   plot     = subtype_P10_plot_clean,
-  width    = 40,
-  height   = 30,
-  dpi      = 300,
-  bg       = "white"
+  width    = 35,
+  height   = 16,
+  dpi      = 500,
+  bg       = "white", 
+  limitsize = FALSE
 )
 
 ```
@@ -575,10 +633,12 @@ All hazard ratios calculated per 10 ug/m3 of exposure.
 ```{r}
 #| label: Supp Fig 1 panel A
 #| fig-align: center
-#| fig-width: 30
-#| fig-height: 22
+#| fig-width: 25
+#| fig-height: 16
 #| warning: false
 #| echo: false
+#| out-width: "100%"
+#| fig-margin: !expr c(0, 0, 0, 0)
 
 sensitivity_P25_clean <- sensitivity_all %>%
   filter(
@@ -598,14 +658,15 @@ sensitivity_P25_clean <- sensitivity_all %>%
   
 sensitivity_P25_plot <- subtype_plot(sensitivity_P25_clean, 
                                      show_wald = FALSE,
-                                     x_breaks = c(0.1, 0.5, 1.0, 1.25, 1.5))
+                                     x_breaks = c(0.1, 0.5, 1.0, 1.25, 1.5),
+                                     base_size = 35)
 sensitivity_P25_plot
 
 ggsave(
   filename = "GS_analysis/Figures/PM25_sensitivity.png",
   plot     = sensitivity_P25_plot,
-  width    = 30,
-  height   = 22,
+  width    = 25,
+  height   = 16,
   dpi      = 300,
   bg       = "white"
 )
@@ -617,10 +678,12 @@ ggsave(
 ```{r}
 #| label: Supp Fig 1 panel B
 #| fig-align: center
-#| fig-width: 30
-#| fig-height: 22
+#| fig-width: 25
+#| fig-height: 16
 #| warning: false
 #| echo: false
+#| out-width: "100%"
+#| fig-margin: !expr c(0, 0, 0, 0)
 
 sensitivity_P10_clean <- sensitivity_all %>%
   filter(
@@ -640,14 +703,15 @@ sensitivity_P10_clean <- sensitivity_all %>%
   
 sensitivity_P10_plot <- subtype_plot(sensitivity_P10_clean, 
                                      show_wald = FALSE,
-                                     x_breaks = c(0.1, 0.5, 1.0, 1.25, 1.5))
+                                     x_breaks = c(0.1, 0.5, 1.0, 1.25, 1.5),
+                                     base_size = 35)
 sensitivity_P10_plot
 
 ggsave(
   filename = "GS_analysis/Figures/PM10_sensitivity.png",
   plot     = sensitivity_P10_plot,
-  width    = 30,
-  height   = 22,
+  width    = 25,
+  height   = 16,
   dpi      = 300,
   bg       = "white"
 )
