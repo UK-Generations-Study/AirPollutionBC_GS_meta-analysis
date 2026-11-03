@@ -54,6 +54,7 @@ full_cohort_plot <- function(data, lag_value, exp_def, plot_title = NULL) {
 }
 
 ###################################################################
+
 subtype_plot <- function(df,
                          x_breaks = c(0.5, 0.8, 0.9, 1.0, 1.2, 1.4),
                          show_wald = TRUE,
@@ -82,18 +83,41 @@ subtype_plot <- function(df,
       } else {
         NA_character_
       },
-      Model   = factor(Model, levels = model_levels),
-      row_key = paste(Model, Subtype, sep = "__")
+      Model      = factor(Model, levels = model_levels),
+      Subtype    = as.character(Subtype),
+      Subtype    = ifelse(as.character(Subtype) == "All", " ", as.character(Subtype)),
+      orig_order = row_number(),
+      row_type   = "data",
+      row_key    = paste(Model, Subtype, sep = "__")
     )
+  
+  # ── add Model names as new rows in the Subtype column ───────────────────────
+  # Each header row sits just above the first row of its Model and has no
+  # estimates, so nothing is drawn for it other than its bold label.
+  header_rows <- df %>%
+    group_by(Model) %>%
+    summarise(orig_order = min(orig_order) - 0.5, .groups = "drop") %>%
+    mutate(
+      Subtype  = as.character(Model),
+      row_type = "header",
+      row_key  = paste(Model, "HEADER", sep = "__")
+    )
+  
+  df <- bind_rows(df, header_rows)
   
   # ── y-axis order: preserve input order, top-to-bottom ───────────────────────
   row_order <- df %>%
-    mutate(orig_order = row_number()) %>%
     arrange(desc(orig_order)) %>%
     pull(row_key)
   
   df <- df %>%
     mutate(row_key = factor(row_key, levels = row_order))
+  
+  # ── y-axis labels: Subtype column, with Model rows in bold ──────────────────
+  y_labels <- df %>%
+    mutate(label = ifelse(row_type == "header", paste0("**", Subtype, "**"), Subtype)) %>%
+    distinct(row_key, label)
+  y_labels <- setNames(y_labels$label, as.character(y_labels$row_key))
   
   # ── axis limits ─────────────────────────────────────────────────────────────
   x_limits <- c(
@@ -112,7 +136,7 @@ subtype_plot <- function(df,
   
   # ── header anchor: top row of the first (top) facet ─────────────────────────
   top_model <- df %>% filter(!is.na(Model)) %>% pull(Model) %>% droplevels() %>% levels() %>% first()
-  top_row   <- df %>% filter(Model == top_model) %>% slice(1) %>% pull(row_key)
+  top_row   <- df %>% filter(Model == top_model) %>% arrange(desc(row_key)) %>% slice(1) %>% pull(row_key)
   header_df <- data.frame(row_key = top_row, Model = top_model) %>%
     mutate(row_key = factor(row_key, levels = levels(df$row_key)),
            Model   = factor(Model,   levels = levels(df$Model)))
@@ -130,32 +154,34 @@ subtype_plot <- function(df,
     geom_errorbarh(
       aes(xmin = CI_lower, xmax = CI_upper),
       height    = 0.25,
-      linewidth = 1.4
+      linewidth = 1.4,
+      na.rm     = TRUE
     ) +
     
-    geom_point(shape = 15, size = 5) +
+    geom_point(shape = 15, size = 5, na.rm = TRUE) +
     
     # ── HR (95% CI) p= column header ──────────────────────────────────────────
-    geom_text(
-      data        = header_df,
-      aes(x = x_stat_start, y = row_key, label = "HR (95% CI)       p-value"),
-      hjust       = 0,
-      vjust       = -1.5,
-      size        = 9,
-      colour      = "grey10",
-      fontface    = "bold",
-      family      = "Times New Roman",
-      inherit.aes = FALSE
-    ) +
+  geom_text(
+    data        = header_df,
+    aes(x = x_stat_start, y = row_key, label = "HR (95% CI)       p-value"),
+    hjust       = 0,
+    vjust       = -1.5,
+    size        = 9,
+    colour      = "grey10",
+    fontface    = "bold",
+    family      = "Times New Roman",
+    inherit.aes = FALSE
+  ) +
     
     # ── HR (95% CI) p= values ─────────────────────────────────────────────────
-    geom_text(
-      aes(x = x_stat_start, label = stat_label),
-      hjust  = 0,
-      size   = 9,
-      colour = "grey20",
-      family = "Times New Roman"
-    ) +
+  geom_text(
+    aes(x = x_stat_start, label = stat_label),
+    hjust  = 0,
+    size   = 9,
+    colour = "grey20",
+    family = "Times New Roman",
+    na.rm  = TRUE
+  ) +
     
     scale_x_log10(
       breaks = x_breaks,
@@ -164,7 +190,7 @@ subtype_plot <- function(df,
     ) +
     scale_colour_manual(values = model_colors) +
     
-    scale_y_discrete(labels = function(x) sub(".*__", "", x)) +
+    scale_y_discrete(labels = y_labels) +
     
     facet_grid(
       rows   = vars(Model),
@@ -179,29 +205,25 @@ subtype_plot <- function(df,
     
     theme_classic(base_size = base_size, base_family = "Times New Roman") +
     theme(
-      strip.placement   = "outside",
+      # Model column hidden: its names now live in the y-axis (Subtype) column
+      strip.text.y.left = element_blank(),
       strip.background  = element_blank(),
-      strip.text.y.left = element_text(
-        angle  = 0,
-        hjust  = 1,
-        face   = "bold",
-        size   = 24,
-        family = "Times New Roman"
-      ),
-      panel.spacing   = unit(1.2, "lines"),
-      axis.text.y     = element_text(size = 24, family = "Times New Roman"),
-      axis.line.y     = element_blank(),
-      axis.ticks.y    = element_blank(),
-      axis.text.x     = element_text(size = 24, family = "Times New Roman"),
-      axis.title.x    = element_text(size = 24, family = "Times New Roman"),
-      legend.position = "none",
-      plot.margin     = margin(40, 10, 10, 10)
+      strip.placement   = "outside",
+      panel.spacing     = unit(1.2, "lines"),
+      axis.text.y       = ggtext::element_markdown(size = 24, family = "Times New Roman"),
+      axis.line.y       = element_blank(),
+      axis.ticks.y      = element_blank(),
+      axis.text.x       = element_text(size = 24, family = "Times New Roman"),
+      axis.title.x      = element_text(size = 24, family = "Times New Roman"),
+      legend.position   = "none",
+      plot.margin       = margin(40, 10, 10, 10)
     )
   
   # ── optional wald column header + values ────────────────────────────────────
   if (show_wald) {
     
     wald_labels <- df %>%
+      filter(row_type == "data") %>%
       group_by(Model) %>%
       slice_tail(n = 1) %>%
       ungroup() %>%
@@ -234,6 +256,7 @@ subtype_plot <- function(df,
   
   return(p)
 }
+
 
 #################################
 # Subtype Table

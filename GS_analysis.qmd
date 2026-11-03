@@ -75,6 +75,7 @@ library(zoo)
 library(lubridate)
 library(slider)
 library(jsonlite)
+library(ggtext)
 
 ```
 
@@ -490,7 +491,7 @@ file.copy(tmp, "GS_analysis/Figures/supptable1.docx", overwrite = TRUE)
 
 # Table 1: Baseline Characteristics Description
 ```{r}
-table1 <- bind_rows(Exposure, age, yearofentry, bmi, smoking, alcohol, education, carstairs, meno, parity, agefirstbirth, HRT ) %>%
+table1 <- bind_rows(age, yearofentry, bmi, smoking, alcohol, education, carstairs, meno, parity, agefirstbirth, HRT ) %>%
   mutate(
       Cases = paste0(format(Cases, big.mark = ",")),
       `Person Years` = paste0(format(`Person Years`, big.mark = ","))
@@ -500,10 +501,10 @@ table1_tbl <- table1 %>%
   group_by(covariate) %>%
   gt(rowname_col = NULL) %>%
     cols_move_to_start(
-    columns = c(Subcategories, `Exposure mean(SD)`, `Count (%)`, Cases, `Person Years`)
+    columns = c(Subcategories, `Count (%)`, Cases, `Person Years`)
   ) %>%
     sub_missing(
-    columns = c(Subcategories, `Exposure mean(SD)`, `Count (%)`, Cases, `Person Years`),
+    columns = c(Subcategories,  `Count (%)`, Cases, `Person Years`),
     missing_text = "-"
   ) %>%
     cols_align(
@@ -539,54 +540,15 @@ file.copy(tmp, "GS_analysis/Figures/table1.docx", overwrite = TRUE)
 ```
 
 
-# Figure 2: Primary and Subtype analysis in the Generations Study for PM2.5 (Panel A) and PM 10(Panel B) and Breast Cancer Incidence. 
+# Figure 1: Primary and Subtype analysis in the Generations Study for PM2.5 (Panel A) and PM 10(Panel B) and Breast Cancer Incidence. 
 
 All hazard ratios calculated per 10 ug/m3 of exposure. 
 
 
-## Panel A : PM 2.5
+## Panel A: PM 10  
 
 ```{r}
 #| label: Figure 2 pan A
-#| fig-align: center
-#| fig-width: 35
-#| fig-height: 16
-#| warning: false
-#| echo: false
-
-subtype_P25 <- subtype %>%
-  filter(
-    Exposure == "PM 2.5"
-  ) %>%
-  filter(
-    Subtype != "Unknown"
-  ) %>%
-  select(-Exposure)
-subtype_P25_plot <- subtype_plot(subtype_P25,
-         x_breaks = c(0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5),
-                                  base_size = 20)
-
-
-subtype_P25_plot_clean <- subtype_P25_plot 
-subtype_P25_plot_clean
-
-ggsave(
-  filename = "GS_analysis/Figures/PM25_subtype.png",
-  plot     = subtype_P25_plot_clean,
-  width    = 35,
-  height   = 16,
-  dpi      = 500,
-  bg       = "white", 
-  limitsize = FALSE
-)
-
-```
-
-
-## Panel B: PM 10  
-
-```{r}
-#| label: Figure 2 pan B
 #| fig-align: center
 #| fig-width: 35
 #| fig-height: 16
@@ -612,10 +574,48 @@ subtype_P10_plot_clean <- subtype_P10_plot
 subtype_P10_plot_clean
 
 ggsave(
-  filename = "GS_analysis/Figures/PM10_subtype.png",
+  filename = "GS_analysis/Figures/PM10_subtype.svg",
   plot     = subtype_P10_plot_clean,
   width    = 35,
-  height   = 16,
+  height   = 15,
+  dpi      = 500,
+  bg       = "white", 
+  limitsize = FALSE
+)
+
+```
+
+## Panel B : PM 2.5
+
+```{r}
+#| label: Figure 2 pan B
+#| fig-align: center
+#| fig-width: 35
+#| fig-height: 16
+#| warning: false
+#| echo: false
+
+subtype_P25 <- subtype %>%
+  filter(
+    Exposure == "PM 2.5"
+  ) %>%
+  filter(
+    Subtype != "Unknown"
+  ) %>%
+  select(-Exposure)
+subtype_P25_plot <- subtype_plot(subtype_P25,
+         x_breaks = c(0.1, 0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 2.0, 2.5),
+                                  base_size = 20)
+
+
+subtype_P25_plot_clean <- subtype_P25_plot 
+subtype_P25_plot_clean
+
+ggsave(
+  filename = "GS_analysis/Figures/PM25_subtype.svg",
+  plot     = subtype_P25_plot_clean,
+  width    = 35,
+  height   = 15,
   dpi      = 500,
   bg       = "white", 
   limitsize = FALSE
@@ -627,11 +627,55 @@ ggsave(
 # Supplementary Figure 1: Sensitivity analysis on the primary outcome in the Generations Study for PM2.5 (Panel A) and PM 10(Panel B) and Breast Cancer Incidence. 
 All hazard ratios calculated per 10 ug/m3 of exposure.
 
-## Panel A: PM 2.5 
-
+## Panel A: PM 10 
 
 ```{r}
 #| label: Supp Fig 1 panel A
+#| fig-align: center
+#| fig-width: 25
+#| fig-height: 16
+#| warning: false
+#| echo: false
+#| out-width: "100%"
+#| fig-margin: !expr c(0, 0, 0, 0)
+
+sensitivity_P10_clean <- sensitivity_all %>%
+  filter(
+    Model == "PM 10"
+    )%>%
+  select(-Model) %>%
+  mutate(
+    Model = `Bias Adjustment`, 
+    Subtype = Covariate, 
+    Pval = `P-value`, 
+    CI_lower = `Lower CI`, 
+    CI_upper = `Upper CI`
+  ) %>%
+  select(
+    Model, Subtype, HR, CI_lower, CI_upper, Pval
+  )
+  
+sensitivity_P10_plot <- subtype_plot(sensitivity_P10_clean, 
+                                     show_wald = FALSE,
+                                     x_breaks = c(0.1, 0.5, 1.0, 1.25, 1.5),
+                                     base_size = 35)
+sensitivity_P10_plot
+
+ggsave(
+  filename = "GS_analysis/Figures/PM10_sensitivity.png",
+  plot     = sensitivity_P10_plot,
+  width    = 25,
+  height   = 16,
+  dpi      = 300,
+  bg       = "white"
+)
+```
+
+## Panel B: PM 2.5 
+
+
+```{r}
+#| label: Supp Fig 1 panel B
 #| fig-align: center
 #| fig-width: 25
 #| fig-height: 16
@@ -673,49 +717,7 @@ ggsave(
 ```
 
 
-## Panel B: PM 10 
 
-```{r}
-#| label: Supp Fig 1 panel B
-#| fig-align: center
-#| fig-width: 25
-#| fig-height: 16
-#| warning: false
-#| echo: false
-#| out-width: "100%"
-#| fig-margin: !expr c(0, 0, 0, 0)
-
-sensitivity_P10_clean <- sensitivity_all %>%
-  filter(
-    Model == "PM 10"
-    )%>%
-  select(-Model) %>%
-  mutate(
-    Model = `Bias Adjustment`, 
-    Subtype = Covariate, 
-    Pval = `P-value`, 
-    CI_lower = `Lower CI`, 
-    CI_upper = `Upper CI`
-  ) %>%
-  select(
-    Model, Subtype, HR, CI_lower, CI_upper, Pval
-  )
-  
-sensitivity_P10_plot <- subtype_plot(sensitivity_P10_clean, 
-                                     show_wald = FALSE,
-                                     x_breaks = c(0.1, 0.5, 1.0, 1.25, 1.5),
-                                     base_size = 35)
-sensitivity_P10_plot
-
-ggsave(
-  filename = "GS_analysis/Figures/PM10_sensitivity.png",
-  plot     = sensitivity_P10_plot,
-  width    = 25,
-  height   = 16,
-  dpi      = 300,
-  bg       = "white"
-)
-```
 
 
 
