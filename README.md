@@ -19,12 +19,6 @@ The data underlying this study are from the Breast Cancer Now Generations Study 
 Information on how to apply for data access is available at https://thegenerationsstudy.co.uk/. 
 Air pollution data is available from Utrecht University, more application information at https://expanseproject.eu/. 
 
-## Reproducibility 
-
-Software Versions
-R version 4.4.1
-[Covidence](https://app.covidence.org/sign_in)
-
 ## Overall File Structure by Figure
 
 | Output | Figure creation location |
@@ -39,9 +33,12 @@ R version 4.4.1
 | Supplementary Table 5 | XXX |
 
 ### UK Generations Study Cohort Analysis
+Software Version: R version 4.4.1
 Markdown for the UK Generations Study Analysis can be found here: [Generations Study Analysis](https://psychic-adventure-4q9wyj4.pages.github.io/GS_analysis.html)
 
 ### Meta-Analysis
+Software Version: R version 4.6.2
+
 Search date:
 16 October 2026
 
