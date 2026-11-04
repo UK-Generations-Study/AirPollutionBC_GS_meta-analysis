@@ -24,15 +24,16 @@ R version 4.4.1
 
 ## Overall File Structure by Figure
 
-Output	Figure creation location
-Figure 1	GS_analysis.qmd
-Figure 2	XXX
-Figure 3	XXX
-Figure 4	XXX
-Table 1	GS_analysis.qmd
-Table 3	XXX
-Supplementary Figure 1	GS_analysis.qmd
-Supplementary Table 5	XXX
+| Output | Figure creation location |
+|---------|---------|
+| Figure 1 | GS_analysis.qmd |
+| Figure 2 | XXX |
+| Figure 3 | XXX |
+| Figure 4 | XXX |
+| Table 1 | GS_analysis.qmd |
+| Table 3 | XXX |
+| Supplementary Figure 1 | GS_analysis.qmd |
+| Supplementary Table 5 | XXX |
 
 ### UK Generations Study Cohort Analysis
 Analysis for the Generations Study Analysis can be found here: [Generations Study Analysis](https://psychic-adventure-4q9wyj4.pages.github.io/GS_analysis.html)
