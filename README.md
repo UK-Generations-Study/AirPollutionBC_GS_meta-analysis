@@ -54,17 +54,12 @@ Protocol registration:
 CRD420251075459
 
 Methods structure for meta-analysis: 
-(1) Literature search strategy
-(2) Study selection and eligibility criteria
-(3) Data extraction
-(4) Study quality assessment
-(5) Statistical analysis
-- Effect size harmonisation
-- Meta-analysis and heterogeneity assessment
-- Subgroup analyses and meta-regression
-- Sensitivity analyses (including leave-one-out analysis)
-- Publication bias assessment
-(6) Population attributable fraction (PAF) estimation
+- Literature search strategy
+- Study selection and eligibility criteria
+- Data extraction
+- Study quality assessment
+- Statistical analysis: Effect size harmonisation; Meta-analysis and heterogeneity assessment; Subgroup analyses and meta-regression; Sensitivity analyses (including leave-one-out analysis); Publication bias assessment
+- Population attributable fraction (PAF) estimation
 
 
 All manuscript figures can be recreated from source code using scripts in
