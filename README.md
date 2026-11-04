@@ -20,7 +20,10 @@ Information on how to apply for data access is available at https://thegeneratio
 Air pollution data is available from Utrecht University, more application information at https://expanseproject.eu/. 
 
 ## Reproducibility 
+
+Software Versions
 R version 4.4.1
+[Covidence](https://app.covidence.org/sign_in)
 
 ## Overall File Structure by Figure
 
@@ -36,12 +39,7 @@ R version 4.4.1
 | Supplementary Table 5 | XXX |
 
 ### UK Generations Study Cohort Analysis
-Analysis for the Generations Study Analysis can be found here: [Generations Study Analysis](https://psychic-adventure-4q9wyj4.pages.github.io/GS_analysis.html)
-
-The above markdown includes script for: 
-- Table 1
-- Figure 1
-- Supplementary Figure 1
+Markdown for the UK Generations Study Analysis can be found here: [Generations Study Analysis](https://psychic-adventure-4q9wyj4.pages.github.io/GS_analysis.html)
 
 ### Meta-Analysis
 Search date:
@@ -55,14 +53,8 @@ EMBASE
 Protocol registration:
 CRD420251075459
 
-Folder structure for meta-analysis: 
+Methods structure for meta-analysis: 
 XXX
-
-Folder structure by figure: 
-- Figure 2: XXX
-- Figure 3: XXX
-- Table 3: XXX
-- Supplementary table 5: XXX
 
 
 All manuscript figures can be recreated from source code using scripts in
