@@ -1,0 +1,1368 @@
+---
+title: "PM and FBC: Meta-analysis and PAF"
+author: "SW"
+format: 
+  html:
+    toc: true
+    toc-depth: 8
+    embed-resources: false
+    grid:
+      sidebar-width: 300px
+      body-width: 1500px
+      margin-width: 300px
+      gutter-width: 1.5rem
+editor:
+  mode: source
+execute:
+  echo: false
+  warning: false
+---
+
+# Setup
+```{r}
+#| label: setup
+
+project_dir <- "C:/Users/swang01/OneDrive - The Institute of Cancer Research/Desktop/PM and FBC"
+input_file <- file.path(project_dir, "Meta-analysis.xlsx")
+figure_dir <- file.path(project_dir, "Figures")
+table_dir <- file.path(project_dir, "Tables")
+
+dir.create(figure_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(table_dir, recursive = TRUE, showWarnings = FALSE)
+
+library("metafor")
+library("dplyr")
+library("tidyr")
+library("ggplot2")
+library("forestplot")
+library("readxl")
+library("svglite")
+
+```
+
+# Part I. Overall meta-analysis for PM10
+## PM10 initial meta-analysis with all studies (17 studies)
+```{r}
+#| label: PM10 initial meta-analysis with all studies (17 studies)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-All")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM10_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM10_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM10_res <- PM10_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10All.svg"),width = 6,height = 9)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+###Based on the created figure, Smotherman, 2023's study looks like an influential study.
+###therefore, conduct the leave-one-out analysis to confirm
+loo_df <- as.data.frame(leave1out(PM10_res))
+loo_df$HR <- round(exp(loo_df$estimate), 2)
+loo_df$CI <- paste0("(", round(exp(loo_df$ci.lb), 2), ", ", round(exp(loo_df$ci.ub), 2), ")")
+loo_df$HR_95CI <- paste0(loo_df$HR,loo_df$CI)
+loo_df$I2_new <- paste0(round(loo_df$I2,2),"%")
+loo_df$P_value <- ifelse(loo_df$pval<0.001,"<0.001",loo_df$pval)
+loo_df$Heterogeneity_Pvalue <- ifelse(loo_df$Qp<0.001,"<0.001",loo_df$Qp)
+write.csv(loo_df,file = file.path(table_dir, "PM10InitialLOO.csv"))
+###After excluding Smotherman, 2023's study, I2 changes from 86.69% to 35.99%, HR changes from 1.10 to 1.03
+###So, for the main analysis, excluded this study (PM10-Main)
+
+knitr::include_graphics(file.path(figure_dir, "PM10All.svg"))
+knitr::kable(loo_df,caption = "Leave-one-out sensitivity analysis of intial all studies for PM10",digits = 2,row.names = TRUE)
+```
+
+## PM10 initial meta-analysis with all studies + GS (18 studies)
+```{r}
+#| label: PM10 initial meta-analysis with all studies (18 studies)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-All + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM10_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM10_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM10_res <- PM10_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10All + GS.svg"),width = 6,height = 9)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM10All + GS.svg"))
+```
+
+## Supplementary table 5A. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM10 (including influential study)
+```{r}
+#| label: Supplementary table 5A. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM10 (including influential study)
+#| echo: false
+
+loo_df <- as.data.frame(leave1out(PM10_res))
+loo_df$HR <- round(exp(loo_df$estimate), 2)
+loo_df$CI <- paste0("(", round(exp(loo_df$ci.lb), 2), ", ", round(exp(loo_df$ci.ub), 2), ")")
+loo_df$HR_95CI <- paste0(loo_df$HR,loo_df$CI)
+loo_df$I2_new <- paste0(round(loo_df$I2,2),"%")
+loo_df$P_value <- ifelse(loo_df$pval<0.001,"<0.001",loo_df$pval)
+loo_df$Heterogeneity_Pvalue <- ifelse(loo_df$Qp<0.001,"<0.001",loo_df$Qp)
+write.csv(loo_df,file = file.path(table_dir, "PM10InitialLOO.csv"))
+###After excluding Smotherman, 2023's study, I2 changes from 86.02% to 36.96%, HR changes from 1.10 to 1.04
+###So, for the main analysis, excluded this study (PM10-Main + GS)
+
+knitr::kable(loo_df,caption = "Leave-one-out sensitivity analysis of intial all studies + GS for PM10",digits = 2,row.names = TRUE)
+```
+
+
+## Figure 2A: Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10
+```{r}
+#| label: Figure 2A. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Main + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM10_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM10_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM10_res <- PM10_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10Main + GS.svg"),width = 6.5,height = 9)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM10Main + GS.svg"))
+```
+
+## Supplementary table 5B. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM10 (without influential study)
+```{r}
+#| label: Supplementary table 5B. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM10 (without influential study)
+#| echo: false
+
+loo_df <- as.data.frame(leave1out(PM10_res))
+loo_df$HR <- round(exp(loo_df$estimate), 2)
+loo_df$CI <- paste0("(", round(exp(loo_df$ci.lb), 2), ", ", round(exp(loo_df$ci.ub), 2), ")")
+loo_df$HR_95CI <- paste0(loo_df$HR,loo_df$CI)
+loo_df$I2_new <- paste0(round(loo_df$I2,2),"%")
+loo_df$P_value <- ifelse(loo_df$pval<0.001,"<0.001",loo_df$pval)
+loo_df$Heterogeneity_Pvalue <- ifelse(loo_df$Qp<0.001,"<0.001",loo_df$Qp)
+write.csv(loo_df,file = file.path(table_dir, "PM10Main+GSLOO.csv"))
+
+knitr::kable(loo_df,caption = "Leave-one-out sensitivity analysis of main studies + GS for PM10",digits = 2,row.names = TRUE)
+```
+
+
+## Supplemetary figure 3A. PM10 Funnel plot and Egger’s test
+```{r}
+#| label: Supplemetary figure 3A. PM10 Funnel plot and Egger’s test
+#| out-width: "90%"
+#| echo: false
+
+egger_test <- regtest(PM10_res, model = "rma", predictor = "sei")
+print(egger_test)
+
+svglite(file = file.path(figure_dir, "PM10Funnelplot.svg"),width = 6,height = 9)
+funnel(PM10_res,atransf = exp, at = log(c(0.5, 1, 1.5, 2)),ylim = c(0,0.35),yaxt = "n",xlab = "Hazard Ratio", ylab = "Standard Error")
+axis(2, at = seq(0, 0.35, by = 0.05), las = 1)
+text(x = log(0.45), y = 0.35, pos = 4,labels = paste0("Egger's test: z = ", round(egger_test$zval, 2),", p = ", signif(egger_test$pval, 3)),cex = 0.9)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM10Funnelplot.svg"))
+```
+
+# Part II. Overall meta-analysis for PM2.5
+## PM2.5 initial meta-analysis with all studies (28 studies)
+```{r}
+#| label: PM2.5 initial meta-analysis with all studies (28 studies)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-All")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM2.5_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM2.5_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM2.5_res <- PM2.5_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5All.svg"),width = 6,height = 9)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+###Based on the created figure, Kayyal-Tarabeia, 2024's study looks like an influential study.
+###therefore, conduct the leave-one-out analysis to confirm
+loo_df <- as.data.frame(leave1out(PM2.5_res))
+loo_df$HR <- round(exp(loo_df$estimate), 2)
+loo_df$CI <- paste0("(", round(exp(loo_df$ci.lb), 2), ", ", round(exp(loo_df$ci.ub), 2), ")")
+loo_df$HR_95CI <- paste0(loo_df$HR,loo_df$CI)
+loo_df$I2_new <- paste0(round(loo_df$I2,2),"%")
+loo_df$P_value <- ifelse(loo_df$pval<0.001,"<0.001",loo_df$pval)
+loo_df$Heterogeneity_Pvalue <- ifelse(loo_df$Qp<0.001,"<0.001",loo_df$Qp)
+write.csv(loo_df,file = file.path(table_dir, "PM2.5InitialLOO.csv"))
+###After excluding Kayyal-Tarabeia, 2024's study, I2 changes from 91.93% to 78.93%, HR changes from 1.14 to 1.08
+###So, for the main analysis, excluded this study (PM2.5-Main)
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5All.svg"))
+knitr::kable(loo_df,caption = "Leave-one-out sensitivity analysis of intial all studies for PM2.5",digits = 2,row.names = TRUE)
+```
+
+## PM2.5 initial meta-analysis with all studies + GS (29 studies)
+```{r}
+#| label: PM2.5 initial meta-analysis with all studies + GS (29 studies)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-All + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM2.5_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM2.5_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM2.5_res <- PM2.5_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5All + GS.svg"),width = 6,height = 9)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5All + GS.svg"))
+```
+
+## Supplementary table 5C. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM2.5 (including influential study)
+```{r}
+#| label: Supplementary table 5C. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM2.5 (including influential study)
+#| echo: false
+
+loo_df <- as.data.frame(leave1out(PM2.5_res))
+loo_df$HR <- round(exp(loo_df$estimate), 2)
+loo_df$CI <- paste0("(", round(exp(loo_df$ci.lb), 2), ", ", round(exp(loo_df$ci.ub), 2), ")")
+loo_df$HR_95CI <- paste0(loo_df$HR,loo_df$CI)
+loo_df$I2_new <- paste0(round(loo_df$I2,2),"%")
+loo_df$P_value <- ifelse(loo_df$pval<0.001,"<0.001",loo_df$pval)
+loo_df$Heterogeneity_Pvalue <- ifelse(loo_df$Qp<0.001,"<0.001",loo_df$Qp)
+write.csv(loo_df,file = file.path(table_dir, "PM2.5Initial+GSLOO.csv"))
+###After excluding Kayyal-Tarabeia, 2024's study, I2 changes from 91.71% to 78.70%, HR changes from 1.14 to 1.08
+###So, for the main analysis, excluded this study (PM2.5-Main + GS)
+
+knitr::kable(loo_df,caption = "Leave-one-out sensitivity analysis of initial all studies + GS for PM2.5",digits = 2,row.names = FALSE)
+```
+
+
+## Figure 2B. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM2.5
+```{r}
+#| label: Figure 2B. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM2.5
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Main + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM2.5_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM2.5_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM2.5_res <- PM2.5_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5Main + GS.svg"),width = 6,height = 9)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5Main + GS.svg"))
+```
+
+## Supplementary table 5D. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM2.5 (without influential study)
+```{r}
+#| label: Supplementary table 5D. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM2.5 (without influential study)
+#| echo: false
+
+loo_df <- as.data.frame(leave1out(PM2.5_res))
+loo_df$HR <- round(exp(loo_df$estimate), 2)
+loo_df$CI <- paste0("(", round(exp(loo_df$ci.lb), 2), ", ", round(exp(loo_df$ci.ub), 2), ")")
+loo_df$HR_95CI <- paste0(loo_df$HR,loo_df$CI)
+loo_df$I2_new <- paste0(round(loo_df$I2,2),"%")
+loo_df$P_value <- ifelse(loo_df$pval<0.001,"<0.001",loo_df$pval)
+loo_df$Heterogeneity_Pvalue <- ifelse(loo_df$Qp<0.001,"<0.001",loo_df$Qp)
+write.csv(loo_df,file = file.path(table_dir, "PM2.5Main+GSLOO.csv"))
+
+knitr::kable(loo_df,caption = "Leave-one-out sensitivity analysis of main studies + GS for PM2.5",digits = 2,row.names = FALSE)
+```
+
+## Supplemetary figure 3B PM2.5 Funnel plot and Egger’s test
+```{r}
+#| label: Supplemetary figure 3B. PM2.5 Funnel plot and Egger’s test
+#| out-width: "90%"
+#| echo: false
+
+egger_test <- regtest(PM2.5_res, model = "rma", predictor = "sei")
+print(egger_test)
+
+svglite(file = file.path(figure_dir, "PM2.5Funnelplot.svg"),width = 6,height = 9)
+funnel(PM2.5_res,atransf = exp, at = log(c(0.5, 1, 1.5, 2)),ylim = c(0,0.35),yaxt = "n",xlab = "Hazard Ratio", ylab = "Standard Error")
+axis(2, at = seq(0, 0.35, by = 0.05), las = 1)
+text(x = log(0.45), y = 0.35, pos = 4,labels = paste0("Egger's test: z = ", round(egger_test$zval, 2),", p = ", signif(egger_test$pval, 3)),cex = 0.9)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5Funnelplot.svg"))
+```
+
+
+
+# Part III. Subgroup analysis for PM10
+## Figure 3A. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10 in relation to breast cancer incidence by menopausal status
+```{r}
+#| label: Figure 3A. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10 in relation to breast cancer incidence by menopausal status
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Menopausal + GS")
+
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+data$Menopausal_status <- factor(data$Menopausal_status, levels = c("Premenopause","Postmenopause"))
+Numpre <- nrow(subset(data, data$Menopausal_status =="Premenopause"))
+Numpost <- nrow(subset(data, data$Menopausal_status =="Postmenopause"))
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$Weight <- weights(PM10_res)
+data <- do.call(rbind, lapply(split(data, data$Menopausal_status), function(sub) {
+  sub[order(sub$Weight), ]
+}))
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+PM10_sub <- rma(yi = logHR_10,sei = SE_10,mods = ~Menopausal_status, data = data,method = "DL",slab = data$Study)
+
+#Calculate the random effect of subgroups
+res.pre <- rma(yi = logHR_10,sei = SE_10,subset = (Menopausal_status=="Premenopause"),data = data,method = "DL",slab = data$Study)
+res.post <- rma(yi = logHR_10,sei = SE_10,subset = (Menopausal_status=="Postmenopause"),data = data,method = "DL",slab = data$Study)
+
+#Draw forest plots
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10Menopausal + GS.svg"),width = 7,height = 10.5)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Menopausal Status","HR [95%CI]"), showweights = TRUE,
+       addfit = FALSE, order = Menopausal_status, rows = c((Numpost+7):(Numpre+Numpost+6), 3:(Numpost+2)),
+       xlab = "Hazard Ratio", xlim = c(-2.4,2),ylim = c(-3,Numpre+Numpost+10),lwd = 1.5,pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 1,y = Numpre+Numpost+9,labels = "Weight",font = 2, cex = 0.8)
+text(-2.4,c(Numpre+Numpost+7, Numpost+3),pos = 4, c("Premenopause","Postmenopause"),font = 2,cex = 0.8)
+
+#Add heterogeneity for subgroup analyses
+text(x = -2.4, y = Numpost+5, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.pre$I2, 2), "%, ",format_p(res.pre$QEp)),
+     cex = 0.8)
+text(x = -2.4, y = 1, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.post$I2, 2), "%, ",format_p(res.post$QEp)),
+     cex = 0.8)
+text(x = -2.4, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", format_p(PM10_sub$QMp)),
+     cex = 0.8, font = 2)
+
+addpoly(res.pre, row = Numpost+6, mlab = "Random effect model for premenopausal", col = "skyblue", border = "skyblue")
+addpoly(res.post, row = 2, mlab = "Random effect model for postmenopausal", col = "skyblue", border = "skyblue")
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM10Menopausal + GS.svg"))
+```
+
+## Figure 3B. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10 in relation to breast cancer incidence by hormone receptor status
+```{r}
+#| label: Figure 3B. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10 in relation to breast cancer incidence by hormone receptor status
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Subtype + GS")
+
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+data$Tumor_subtype <- factor(data$Tumor_subtype, levels = c("ER+/PR+","ER-/PR-"))
+Numpos <- nrow(subset(data, data$Tumor_subtype =="ER+/PR+"))
+Numneg <- nrow(subset(data, data$Tumor_subtype =="ER-/PR-"))
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$Weight <- weights(PM10_res)
+data <- do.call(rbind, lapply(split(data, data$Tumor_subtype), function(sub) {
+  sub[order(sub$Weight), ]
+}))
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+PM10_sub <- rma(yi = logHR_10,sei = SE_10,mods = ~Tumor_subtype, data = data,method = "DL",slab = data$Study)
+
+#Calculate the random effect of subgroups
+res.pos <- rma(yi = logHR_10,sei = SE_10,subset = (Tumor_subtype=="ER+/PR+"),data = data,method = "DL",slab = data$Study)
+res.neg <- rma(yi = logHR_10,sei = SE_10,subset = (Tumor_subtype=="ER-/PR-"),data = data,method = "DL",slab = data$Study)
+
+#Draw forest plots
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10Subtype + GS.svg"),width = 7,height = 10.5)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Hormone Receptor Status","HR [95%CI]"), showweights = TRUE,
+       addfit = FALSE, order = Tumor_subtype, rows = c((Numneg+7):(Numpos+Numneg+6), 3:(Numneg+2)),
+       xlab = "Hazard Ratio",xlim = c(-2,2),ylim = c(-3,Numpos+Numneg+10),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 1.2,y = Numpos+Numneg+9,labels = "Weight",font = 2, cex = 0.8)
+text(-2,c(Numpos+Numneg+7, Numneg+3),pos = 4, c("ER+/PR+","ER-/PR-"),font = 2,cex = 0.8)
+
+#Add heterogeneity for subgroup analyses
+text(x = -2, y = Numneg+5, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.pos$I2, 2), "%, ",format_p(res.pos$QEp)),
+     cex = 0.8)
+text(x = -2, y = 1, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.neg$I2, 2), "%, ",format_p(res.neg$QEp)),
+     cex = 0.8)
+text(x = -2, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", format_p(PM10_sub$QMp)),
+     cex = 0.8, font = 2)
+
+addpoly(res.pos, row = Numneg+6, mlab = "Random effect model for ER+/PR+", col = "skyblue", border = "skyblue")
+addpoly(res.neg, row = 2, mlab = "Random effect model for ER-/PR-", col = "skyblue", border = "skyblue")
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM10Subtype + GS.svg"))
+```
+
+
+## Figure 3C. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10 in relation to breast cancer incidence by study location
+```{r}
+#| label: Figure 3C. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10 in relation to breast cancer incidence by study location
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Study_location + GS")
+
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+data$Study_location <- factor(data$Study_location, levels = c("North America","Europe"))
+Numna <- nrow(subset(data, data$Study_location =="North America"))
+Numeu <- nrow(subset(data, data$Study_location =="Europe"))
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$Weight <- weights(PM10_res)
+data <- do.call(rbind, lapply(split(data, data$Study_location), function(sub) {
+  sub[order(sub$Weight), ]
+}))
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+PM10_sub <- rma(yi = logHR_10,sei = SE_10,mods = ~Study_location, data = data,method = "DL",slab = data$Study)
+
+#Calculate the random effect of subgroups
+res.na <- rma(yi = logHR_10,sei = SE_10,subset = (Study_location=="North America"),data = data,method = "DL",slab = data$Study)
+res.eu <- rma(yi = logHR_10,sei = SE_10,subset = (Study_location=="Europe"),data = data,method = "DL",slab = data$Study)
+
+#Draw forest plots
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10Study_location + GS.svg"),width = 7,height = 10.5)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study Location","HR [95%CI]"), showweights = TRUE,
+       addfit = FALSE,order = Study_location, rows = c(3:(Numna+2),(Numna+7):(Numna+Numeu+6)),
+       xlab = "Hazard Ratio",xlim = c(-3,2.5),ylim = c(-3,Numna+Numeu+10),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 1.2,y = Numna+Numeu+9,labels = "Weight",font = 2, cex = 0.8)
+text(-3,c(Numna+3, Numna+Numeu+7),pos = 4, c("North America","Europe"),font = 2,cex = 0.8)
+
+#Add heterogeneity for subgroup analyses
+text(x = -3, y = 1, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.na$I2, 2), "%, ",format_p(res.na$QEp)),
+     cex = 0.8)
+text(x = -3, y = Numna+5, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.eu$I2, 2), "%, ",format_p(res.eu$QEp)),
+     cex = 0.8)
+text(x = -3, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", format_p(PM10_sub$QMp)),
+     cex = 0.8, font = 2)
+
+addpoly(res.na, row = 2, mlab = "Random effect model for North America", col = "skyblue", border = "skyblue")
+addpoly(res.eu, row = Numna+6, mlab = "Random effect model for Europe", col = "skyblue", border = "skyblue")
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM10Study_location + GS.svg"))
+```
+
+
+## Figure 3D. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10 in relation to breast cancer incidence by study design
+```{r}
+#| label: Figure 3D. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10 in relation to breast cancer incidence by study design
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Study_design + GS")
+
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+#Preparations for subgroup forest plots
+data$Study_design <- factor(data$Study_design, levels = c("Cohort study","Case-control study"))
+Numch <- nrow(subset(data, data$Study_design =="Cohort study"))
+Numcc <- nrow(subset(data, data$Study_design =="Case-control study"))
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$Weight <- weights(PM10_res)
+data <- do.call(rbind, lapply(split(data, data$Study_design), function(sub) {
+  sub[order(sub$Weight), ]
+}))
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+PM10_sub <- rma(yi = logHR_10,sei = SE_10,mods = ~Study_design, data = data,method = "DL",slab = data$Study)
+
+#Calculate the random effect of subgroups
+res.ch <- rma(yi = logHR_10,sei = SE_10,subset = (Study_design=="Cohort study"),data = data,method = "DL",slab = data$Study)
+res.cc <- rma(yi = logHR_10,sei = SE_10,subset = (Study_design=="Case-control study"),data = data,method = "DL",slab = data$Study)
+
+#Draw forest plots
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10Study_design + GS.svg"),width = 7,height = 10.5)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study Design","HR [95%CI]"), showweights = TRUE,
+       addfit = FALSE, order = Study_design, rows = c((Numcc+7):(Numch+Numcc+6), 3:(Numcc+2)),
+       xlab = "Hazard Ratio",xlim = c(-2.4,2),ylim = c(-3,Numch+Numcc+10),lwd = 1.5,pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8,efac = 0.5)
+text(x = 1,y = Numch+Numcc+9,labels = "Weight",font = 2, cex = 0.8)
+text(-2.4,c(Numch+Numcc+7, Numcc+3),pos = 4, c("Cohort Studies","Case-control Studies"),font = 2,cex = 0.8)
+
+#Add heterogeneity for subgroup analyses
+text(x = -2.4, y = Numcc+5, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.ch$I2, 2), "%, ",format_p(res.ch$QEp)),
+     cex = 0.8)
+text(x = -2.4, y = 1, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.cc$I2, 2), "%, ",format_p(res.cc$QEp)),
+     cex = 0.8)
+text(x = -2.4, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", format_p(PM10_sub$QMp)),
+     cex = 0.8, font = 2)
+
+addpoly(res.ch, row = Numcc+6, mlab = "Random effect model for cohort studies", col = "skyblue", border = "skyblue")
+addpoly(res.cc, row = 2, mlab = "Random effect model for case-control studies", col = "skyblue", border = "skyblue")
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM10Study_design + GS.svg"))
+```
+
+
+# Part IV. Subgroup analysis for PM2.5
+## Figure 4A. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM2.5 in relation to breast cancer incidence by menopausal status
+```{r}
+#| label: Figure 4A. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM2.5 in relation to breast cancer incidence by menopausal status
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Menopausal + GS")
+
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+data$Menopausal_status <- factor(data$Menopausal_status, levels = c("Premenopause","Postmenopause"))
+Numpre <- nrow(subset(data, data$Menopausal_status =="Premenopause"))
+Numpost <- nrow(subset(data, data$Menopausal_status =="Postmenopause"))
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$Weight <- weights(PM2.5_res)
+data <- do.call(rbind, lapply(split(data, data$Menopausal_status), function(sub) {
+  sub[order(sub$Weight), ]
+}))
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+PM2.5_sub <- rma(yi = logHR_10,sei = SE_10,mods = ~Menopausal_status, data = data,method = "DL",slab = data$Study)
+
+#Calculate the random effect of subgroups
+res.pre <- rma(yi = logHR_10,sei = SE_10,subset = (Menopausal_status=="Premenopause"),data = data,method = "DL",slab = data$Study)
+res.post <- rma(yi = logHR_10,sei = SE_10,subset = (Menopausal_status=="Postmenopause"),data = data,method = "DL",slab = data$Study)
+
+#Draw forest plots
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5Menopausal + GS.svg"),width = 7.6,height = 11.4)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Menopausal Status","HR [95%CI]"), showweights = TRUE,
+       addfit = FALSE, rows = c((Numpost+7):(Numpre+Numpost+6), 3:(Numpost+2)),
+       xlab = "Hazard Ratio", xlim = c(-2,2),ylim = c(-3,Numpre+Numpost+10),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 1.2,y = Numpre+Numpost+9,labels = "Weight",font = 2, cex = 0.8)
+text(-2,c(Numpre+Numpost+7, Numpost+3),pos = 4, c("Premenopause","Postmenopause"),font = 2,cex = 0.8)
+
+#Add heterogeneity for subgroup analyses
+text(x = -2, y = Numpost+5, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.pre$I2, 2), "%, ",format_p(res.pre$QEp)),
+     cex = 0.8)
+text(x = -2, y = 1, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.post$I2, 2), "%, ",format_p(res.post$QEp)),
+     cex = 0.8)
+text(x = -2, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", format_p(PM2.5_sub$QMp)),
+     cex = 0.8, font = 2)
+
+addpoly(res.pre, row = Numpost+6, mlab = "Random effect model for premenopausal", col = "skyblue", border = "skyblue")
+addpoly(res.post, row = 2, mlab = "Random effect model for postmenopausal", col = "skyblue", border = "skyblue")
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5Menopausal + GS.svg"))
+```
+
+
+## Figure 4B. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM2.5 in relation to breast cancer incidence by hormone receptor status
+```{r}
+#| label: Figure 4B. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM2.5 in relation to breast cancer incidence by hormone receptor status
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Subtype + GS")
+
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+data$Tumor_subtype <- factor(data$Tumor_subtype, levels = c("ER+/PR+","ER-/PR-"))
+Numpos <- nrow(subset(data, data$Tumor_subtype =="ER+/PR+"))
+Numneg <- nrow(subset(data, data$Tumor_subtype =="ER-/PR-"))
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$Weight <- weights(PM2.5_res)
+data <- do.call(rbind, lapply(split(data, data$Tumor_subtype), function(sub) {
+  sub[order(sub$Weight), ]
+}))
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+PM2.5_sub <- rma(yi = logHR_10,sei = SE_10,mods = ~Tumor_subtype, data = data,method = "DL",slab = data$Study)
+
+#Calculate the random effect of subgroups
+res.pos <- rma(yi = logHR_10,sei = SE_10,subset = (Tumor_subtype=="ER+/PR+"),data = data,method = "DL",slab = data$Study)
+res.neg <- rma(yi = logHR_10,sei = SE_10,subset = (Tumor_subtype=="ER-/PR-"),data = data,method = "DL",slab = data$Study)
+
+#Draw forest plots
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5Subtype + GS.svg"),width = 6,height = 9)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Hormone Receptor Status","HR [95%CI]"), showweights = TRUE,
+       addfit = FALSE, order = Tumor_subtype, rows = c((Numneg+7):(Numpos+Numneg+6), 3:(Numneg+2)),
+       xlab = "Hazard Ratio",xlim = c(-2,2),ylim = c(-3,Numpos+Numneg+10),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 1.2,y = Numpos+Numneg+9,labels = "Weight",font = 2, cex = 0.8)
+text(-2,c(Numpos+Numneg+7, Numneg+3),pos = 4, c("ER+/PR+","ER-/PR-"),font = 2,cex = 0.8)
+
+#Add heterogeneity for subgroup analyses
+text(x = -2, y = Numneg+5, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.pos$I2, 2), "%, ",format_p(res.pos$QEp)),
+     cex = 0.8)
+text(x = -2, y = 1, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.neg$I2, 2), "%, ",format_p(res.neg$QEp)),
+     cex = 0.8)
+text(x = -2, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", format_p(PM2.5_sub$QMp)),
+     cex = 0.8, font = 2)
+
+addpoly(res.pos, row = Numneg+6, mlab = "Random effect model for ER+/PR+", col = "skyblue", border = "skyblue")
+addpoly(res.neg, row = 2, mlab = "Random effect model for ER-/PR-", col = "skyblue", border = "skyblue")
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5Subtype + GS.svg"))
+```
+
+
+## Figure 4C. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM2.5 in relation to breast cancer incidence by study location
+```{r}
+#| label: Figure 4C. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM2.5 in relation to breast cancer incidence by study location
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Study_location + GS")
+
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+data$Study_location <- factor(data$Study_location, levels = c("North America","Europe","Asia"))
+Numna <- nrow(subset(data, data$Study_location =="North America"))
+Numeu <- nrow(subset(data, data$Study_location =="Europe"))
+Numas <- nrow(subset(data, data$Study_location =="Asia"))
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$Weight <- weights(PM2.5_res)
+data <- do.call(rbind, lapply(split(data, data$Study_location), function(sub) {
+  sub[order(sub$Weight), ]
+}))
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+PM2.5_sub <- rma(yi = logHR_10,sei = SE_10,mods = ~Study_location, data = data,method = "DL",slab = data$Study)
+
+#Calculate the random effect of subgroups
+res.na <- rma(yi = logHR_10,sei = SE_10,subset = (Study_location=="North America"),data = data,method = "DL",slab = data$Study)
+res.eu <- rma(yi = logHR_10,sei = SE_10,subset = (Study_location=="Europe"),data = data,method = "DL",slab = data$Study)
+res.as <- rma(yi = logHR_10,sei = SE_10,subset = (Study_location=="Asia"),data = data,method = "DL",slab = data$Study)
+
+#Draw forest plots
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5Study_location + GS.svg"),width = 7,height = 10.5)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study Location","HR [95%CI]"), showweights = TRUE,
+       addfit = FALSE,order = Study_location, rows = c(3:(Numna+2),(Numna+7):(Numna+Numeu+6),(Numna+Numeu+11):(Numna+Numeu+Numas+10)),
+       xlab = "Hazard Ratio", xlim = c(-2,2),ylim = c(-3,Numna+Numeu+Numas+14),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 1.2,y = Numna+Numeu+Numas+13,labels = "Weight",font = 2, cex = 0.8)
+text(-2,c(Numna+3, Numna+Numeu+7, Numna+Numeu+Numas+11),pos = 4, c("North America","Europe","Asia"),font = 2,cex = 0.8)
+
+#Add heterogeneity for subgroup analyses
+text(x = -2, y = 1, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.na$I2, 2), "%, ",format_p(res.na$QEp)),
+     cex = 0.8)
+text(x = -2, y = Numeu+7, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.eu$I2, 2), "%, ",format_p(res.eu$QEp)),
+     cex = 0.8)
+text(x = -2, y = Numna+Numeu+9, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.as$I2, 2), "%, ",format_p(res.as$QEp)),
+     cex = 0.8)
+text(x = -2, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", format_p(PM2.5_sub$QMp)),
+     cex = 0.8, font = 2)
+
+addpoly(res.na, row = 2, mlab = "Random effect model for North America", col = "skyblue", border = "skyblue")
+addpoly(res.eu, row = Numna+6, mlab = "Random effect model for Europe", col = "skyblue", border = "skyblue")
+addpoly(res.as, row = Numna+Numeu+10, mlab = "Random effect model for Asia", col = "skyblue", border = "skyblue")
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5Study_location + GS.svg"))
+```
+
+
+## Figure 4D. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM2.5 in relation to breast cancer incidence by study design
+```{r}
+#| label: Figure 4D. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM2.5 in relation to breast cancer incidence by study design
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Study_design + GS")
+
+#Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+#Preparations for subgroup forest plots
+data$Study_design <- factor(data$Study_design, levels = c("Cohort study","Case-control study"))
+Numch <- nrow(subset(data, data$Study_design =="Cohort study"))
+Numcc <- nrow(subset(data, data$Study_design =="Case-control study"))
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$Weight <- weights(PM2.5_res)
+data <- do.call(rbind, lapply(split(data, data$Study_design), function(sub) {
+  sub[order(sub$Weight), ]
+}))
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+PM2.5_sub <- rma(yi = logHR_10,sei = SE_10,mods = ~Study_design, data = data,method = "DL",slab = data$Study)
+
+#Calculate the random effect of subgroups
+res.ch <- rma(yi = logHR_10,sei = SE_10,subset = (Study_design=="Cohort study"),data = data,method = "DL",slab = data$Study)
+res.cc <- rma(yi = logHR_10,sei = SE_10,subset = (Study_design=="Case-control study"),data = data,method = "DL",slab = data$Study)
+
+#Draw forest plots
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5Study_design + GS.svg"),width = 7,height = 10.5)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study Design","HR [95%CI]"), showweights = TRUE,
+       addfit = FALSE, rows = c((Numcc+7):(Numcc+Numch+6), 3:(Numcc+2)),
+       xlab = "Hazard Ratio",xlim = c(-2,2),ylim = c(-3,Numch+Numcc+10),lwd = 1.5,pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8,efac = 0.5)
+text(x = 1.2,y = Numch+Numcc+9,labels = "Weight",font = 2, cex = 0.8)
+text(-2,c(Numcc+Numch+7, Numcc+3),pos = 4, c("Cohort Studies","Case-control Studies"),font = 2,cex = 0.8)
+
+#Add heterogeneity for subgroup analyses
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+text(x = -2, y = Numcc+5, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.ch$I2, 2), "%, ",format_p(res.ch$QEp)),
+     cex = 0.8)
+text(x = -2, y = 1, pos = 4,labels = paste0("Heterogeneity: I² = ", round(res.cc$I2, 2), "%, ",format_p(res.cc$QEp)),
+     cex = 0.8)
+text(x = -2, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", format_p(PM2.5_sub$QMp)),
+     cex = 0.8, font = 2)
+
+addpoly(res.ch, row = Numcc+6, mlab = "Random effect model for cohort studies", col = "skyblue", border = "skyblue")
+addpoly(res.cc, row = 2, mlab = "Random effect model for case-control studies", col = "skyblue", border = "skyblue")
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5Study_design + GS.svg"))
+```
+
+# Part V. Population attributable fraction for PM2.5
+```{r}
+#| label: PAF for PM2.5
+## Assumptions: log-linear RR, exposure X ~ Normal(mu, sigma^2)
+
+set.seed(20251027)
+
+###***PM2.5***###
+mu_PM2.5 <- 9.577           # population mean of PM2.5
+sigma_PM2.5 <- 1.389          # population SD of PM2.5
+xref_PM2.5 <- 5            # counterfactual PM2.5 (WHO AQG)
+RR10_PM2.5 <- 1.08
+CI10_PM2.5 <- c(1.04, 1.13)
+
+## ---- Derive SE on log scale from CI ----
+logRR10_PM2.5 <- log(RR10_PM2.5)
+SE_logRR10_PM2.5  <- (log(CI10_PM2.5[2]) - log(CI10_PM2.5[1])) / (2 * 1.96)
+
+## ---- Monte Carlo settings ----
+B <- 10000  # number of draws
+
+## ---- Draw effect (uncertainty from meta-analytic RR) ----
+logRR10_draws_PM2.5 <- rnorm(B, mean = logRR10_PM2.5, sd = SE_logRR10_PM2.5)
+beta_draws_PM2.5 <- logRR10_draws_PM2.5 / 10   # per 1 ug/m^3 slope
+
+## ---- (A) Distribution-integrated PAF  ----
+## E[RR(X)] = E[exp{beta*(X - xref)}] for X ~ N(mu, sigma^2)
+## = exp( beta*(mu - xref) + 0.5 * beta^2 * sigma^2 )
+E_RR_draws_PM2.5 <- exp(beta_draws_PM2.5 * (mu_PM2.5 - xref_PM2.5) + 0.5 * (beta_draws_PM2.5^2) * (sigma_PM2.5^2))
+PAF_draws_PM2.5  <- (E_RR_draws_PM2.5 - 1) / E_RR_draws_PM2.5
+
+PAF_point_PM2.5  <- mean(PAF_draws_PM2.5)  # Monte Carlo mean as point estimate
+PAF_CI_PM2.5  <- quantile(PAF_draws_PM2.5, c(0.025, 0.975))
+
+## ---- (B) Mean-only approximation (sensitivity) ----
+RRpop_meanonly_draws_PM2.5 <- exp(beta_draws_PM2.5 * (mu_PM2.5 - xref_PM2.5))
+PAF_meanonly_draws_PM2.5 <- (RRpop_meanonly_draws_PM2.5 - 1) / RRpop_meanonly_draws_PM2.5
+PAF_meanonly_point_PM2.5 <- mean(PAF_meanonly_draws_PM2.5)
+PAF_meanonly_CI_PM2.5 <- quantile(PAF_meanonly_draws_PM2.5, c(0.025, 0.975))
+
+## ---- Print tidy results ----
+as_percent <- function(x) sprintf('%.1f%%', 100 * x)
+
+cat("=== Distribution-integrated PAF  ===\n")
+cat("Point estimate: ", as_percent(PAF_point_PM2.5), "\n", sep = "")
+cat("95% UI:         [", as_percent(PAF_CI_PM2.5[1]), ", ", as_percent(PAF_CI_PM2.5[2]), "]\n\n", sep = "")
+
+cat("=== Mean-only approximation (sensitivity) ===\n")
+cat("Point estimate: ", as_percent(PAF_meanonly_point_PM2.5), "\n", sep = "")
+cat("95% UI:         [", as_percent(PAF_meanonly_CI_PM2.5[1]), ", ", as_percent(PAF_meanonly_CI_PM2.5[2]), "]\n\n", sep = "")
+```
+
+
+# Part VI. Bias assessment for PM10
+## Table 3 Meta-analysis of particulate matter (PM10) exposure and breast cancer incidence for main and bias sensitivity analyses -- All studies included
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- All studies included
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Main + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM10_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM10_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM10_res <- PM10_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10Allsensitivity.svg"),width = 6,height = 9)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM10Allsensitivity.svg"))
+```
+
+
+## Table 3 Meta-analysis of particulate matter (PM10) exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of selection bias
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of selection bias
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Prospective + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM10_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM10_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM10_res <- PM10_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10-Prospective + GS.svg"),width = 6,height = 9)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM10-Prospective + GS.svg"))
+```
+
+## Table 3 Meta-analysis of particulate matter (PM10) exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of major confounding
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of major confounding
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-SES + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM10_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM10_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM10_res <- PM10_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10-SES + GS.svg"),width = 6,height = 9)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM10-SES + GS.svg"))
+```
+
+
+## Table 3 Meta-analysis of particulate matter (PM10) exposure and breast cancer incidence for main and bias sensitivity analyses -- No major sources of exposure measurement error
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- No major sources of exposure measurement error
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Exposure + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM10_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM10_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM10_res <- PM10_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10-Exposure + GS.svg"),width = 6,height = 9)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM10-Exposure + GS.svg"))
+```
+
+
+# Part VII. Bias assessment for PM2.5
+## Table 3 Meta-analysis of particulate matter (PM2.5) exposure and breast cancer incidence for main and bias sensitivity analyses -- All studies included
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- All studies included
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Main + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM2.5_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM2.5_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM2.5_res <- PM2.5_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5Allsensitivity.svg"),width = 6,height = 9)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5Allsensitivity.svg"))
+```
+
+
+## Table 3 Meta-analysis of particulate matter (PM2.5) exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of selection bias
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of selection bias
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Prospective + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM2.5_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM2.5_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM2.5_res <- PM2.5_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5-Prospective + GS.svg"),width = 6,height = 9)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5-Prospective + GS.svg"))
+```
+
+
+## Table 3 Meta-analysis of particulate matter (PM2.5) exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of major confounding
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of major confounding
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-SES + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM2.5_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM2.5_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM2.5_res <- PM2.5_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5-SES + GS.svg"),width = 6,height = 9)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5-SES + GS.svg"))
+```
+
+
+## Table 3 Meta-analysis of particulate matter (PM2.5) exposure and breast cancer incidence for main and bias sensitivity analyses -- No major sources of exposure measurement error
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- No major sources of exposure measurement error
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Exposure + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM2.5_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM2.5_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM2.5_res <- PM2.5_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5-Exposure + GS.svg"),width = 6,height = 9)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+dev.off()
+
+knitr::include_graphics(file.path(figure_dir, "PM2.5-Exposure + GS.svg"))
+```
