@@ -24,13 +24,15 @@ Air pollution data is available from Utrecht University, more application inform
 | Output | Figure creation location |
 |---------|---------|
 | Figure 1 | GS_analysis.qmd |
-| Figure 2 | XXX |
-| Figure 3 | XXX |
-| Figure 4 | XXX |
+| Figure 2 | Meta_analysis.qmd |
+| Figure 3 | Meta_analysis.qmd |
+| Figure 4 | Meta_analysis.qmd |
 | Table 1 | GS_analysis.qmd |
-| Table 3 | XXX |
+| Table 3 | Meta_analysis.qmd |
 | Supplementary Figure 1 | GS_analysis.qmd |
-| Supplementary Table 5 | XXX |
+| Supplementary Figure 3 | Meta_analysis.qmd |
+| Supplementary Table 5 | Meta_analysis.qmd |
+| Supplementary Table 6 | Meta_analysis.qmd |
 
 ### UK Generations Study Cohort Analysis
 Software Version: R version 4.4.1
@@ -52,7 +54,17 @@ Protocol registration:
 CRD420251075459
 
 Methods structure for meta-analysis: 
-XXX
+(1) Literature search strategy
+(2) Study selection and eligibility criteria
+(3) Data extraction
+(4) Study quality assessment
+(5) Statistical analysis
+- Effect size harmonisation
+- Meta-analysis and heterogeneity assessment
+- Subgroup analyses and meta-regression
+- Sensitivity analyses (including leave-one-out analysis)
+- Publication bias assessment
+(6) Population attributable fraction (PAF) estimation
 
 
 All manuscript figures can be recreated from source code using scripts in
