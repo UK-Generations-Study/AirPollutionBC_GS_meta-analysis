@@ -24,13 +24,15 @@ Air pollution data is available from Utrecht University, more application inform
 | Output | Figure creation location |
 |---------|---------|
 | Figure 1 | GS_analysis.qmd |
-| Figure 2 | XXX |
-| Figure 3 | XXX |
-| Figure 4 | XXX |
+| Figure 2 | Meta_analysis.qmd |
+| Figure 3 | Meta_analysis.qmd |
+| Figure 4 | Meta_analysis.qmd |
 | Table 1 | GS_analysis.qmd |
-| Table 3 | XXX |
+| Table 3 | Meta_analysis.qmd |
 | Supplementary Figure 1 | GS_analysis.qmd |
-| Supplementary Table 5 | XXX |
+| Supplementary Figure 3 | Meta_analysis.qmd |
+| Supplementary Table 5 | Meta_analysis.qmd |
+| Supplementary Table 6 | Meta_analysis.qmd |
 
 ### UK Generations Study Cohort Analysis
 Software Version: R version 4.4.1
@@ -39,6 +41,8 @@ Markdown for the UK Generations Study Analysis can be found here: [Generations S
 
 ### Meta-Analysis
 Software Version: R version 4.6.2
+
+Markdown for the Meta Analysis could be found here: 
 
 Search date:
 16 October 2026
@@ -52,8 +56,14 @@ Protocol registration:
 CRD420251075459
 
 Methods structure for meta-analysis: 
-XXX
-
+| Steps | Document location |
+|---------|---------|
+| Literature search strategy | Supplementary Table 2 |
+| Study selection and eligibility criteria | Supplementary Table 3 & PRISMA Flow Chart.pptx (Supplementary Figure 2) |
+| Data extraction | Data extraction table.xlsx (Supplementary Table 4) |
+| Meta analysis & Subgroup analysis | Meta_analysis.qmd |
+| Bias assessment | Meta_analysis.qmd |
+| Population attributable fraction (PAF) estimation | Meta_analysis.qmd |
 
 All manuscript figures can be recreated from source code using scripts in
 the analysis/ directory.
