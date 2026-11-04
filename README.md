@@ -42,6 +42,8 @@ Markdown for the UK Generations Study Analysis can be found here: [Generations S
 ### Meta-Analysis
 Software Version: R version 4.6.2
 
+Markdown for the Meta Analysis could be found here: 
+
 Search date:
 16 October 2026
 
@@ -54,13 +56,14 @@ Protocol registration:
 CRD420251075459
 
 Methods structure for meta-analysis: 
-- Literature search strategy
-- Study selection and eligibility criteria
-- Data extraction
-- Study quality assessment
-- Statistical analysis: Effect size harmonisation; Meta-analysis and heterogeneity assessment; Subgroup analyses and meta-regression; Sensitivity analyses (including leave-one-out analysis); Publication bias assessment
-- Population attributable fraction (PAF) estimation
-
+| Steps | Document location |
+|---------|---------|
+| Literature search strategy | Supplementary Table 2 |
+| Study selection and eligibility criteria | Supplementary Table 3 & PRISMA Flow Chart.pptx (Supplementary Figure 2) |
+| Data extraction | Data extraction table.xlsx (Supplementary Table 4) |
+| Meta analysis & Subgroup analysis | Meta_analysis.qmd |
+| Bias assessment | Meta_analysis.qmd |
+| Population attributable fraction (PAF) estimation | Meta_analysis.qmd |
 
 All manuscript figures can be recreated from source code using scripts in
 the analysis/ directory.
