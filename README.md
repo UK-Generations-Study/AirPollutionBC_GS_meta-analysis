@@ -34,15 +34,15 @@ Air pollution data is available from Utrecht University, more application inform
 | Supplementary Table 5 | Meta_analysis.qmd |
 | Supplementary Table 6 | Meta_analysis.qmd |
 
-### UK Generations Study Cohort Analysis
+### UK Generations Study Prospective Cohort Analysis
 Software Version: R version 4.4.1
 
-Markdown for the UK Generations Study Analysis can be found here: [Generations Study Analysis](https://psychic-adventure-4q9wyj4.pages.github.io/GS_analysis.html)
+Markdown for the UK Generations Study Analysis can be found here: [Prospective Cohort Analysis](https://uk-generations-study.github.io/AirPollutionBC_GS_meta-analysis/GS_analysis)
 
 ### Meta-Analysis
 Software Version: R version 4.6.2
 
-Markdown for the Meta Analysis could be found here: http://localhost:4777/
+Markdown for the Meta Analysis could be found here: [Meta Analysis](https://uk-generations-study.github.io/AirPollutionBC_GS_meta-analysis/Meta_analysis)
 
 Search date:
 16 October 2026
