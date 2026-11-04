@@ -22,6 +22,18 @@ Air pollution data is available from Utrecht University, more application inform
 ## Reproducibility 
 R version 4.4.1
 
+## Overall File Structure by Figure
+
+Output	Figure creation location
+Figure 1	GS_analysis.qmd
+Figure 2	XXX
+Figure 3	XXX
+Figure 4	XXX
+Table 1	GS_analysis.qmd
+Table 3	XXX
+Supplementary Figure 1	GS_analysis.qmd
+Supplementary Table 5	XXX
+
 ### UK Generations Study Cohort Analysis
 Analysis for the Generations Study Analysis can be found here: [Generations Study Analysis](https://psychic-adventure-4q9wyj4.pages.github.io/GS_analysis.html)
 
@@ -29,7 +41,6 @@ The above markdown includes script for:
 - Table 1
 - Figure 1
 - Supplementary Figure 1
-
 
 ### Meta-Analysis
 Search date:
@@ -47,10 +58,10 @@ Folder structure for meta-analysis:
 XXX
 
 Folder structure by figure: 
-Figure 2: XXX
-Figure 3: XXX
-Table 3: XXX
-Supplementary table 5: XXX
+- Figure 2: XXX
+- Figure 3: XXX
+- Table 3: XXX
+- Supplementary table 5: XXX
 
 
 All manuscript figures can be recreated from source code using scripts in
