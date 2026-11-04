@@ -26,7 +26,9 @@ R version 4.4.1
 Analysis for the Generations Study Analysis can be found here: [Generations Study Analysis](https://psychic-adventure-4q9wyj4.pages.github.io/GS_analysis.html)
 
 Folder structure: 
+
 Script: AirPollutionBC_GS_meta-analysis/tree/main/GS_analysis/Script
+
 Figures: AirPollutionBC_GS_meta-analysis/tree/main/GS_analysis/Figures
 
 This includes script for: 
