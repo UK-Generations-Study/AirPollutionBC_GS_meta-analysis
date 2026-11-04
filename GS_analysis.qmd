@@ -18,7 +18,13 @@ execute:
   warning: false
 ---
 
-These are the final figures for the air pollution analysis
+Residential particulate matter air pollution and breast cancer risk: A prospective cohort analysis and meta-analysis
+
+These are the final figures for the Uk Generations Study cohort part of the analysis
+
+
+
+
 
 Setting up
 
@@ -719,10 +725,10 @@ ggsave(
 
 
 
+# Extra
 
 
-
-# Supplementary Table 3: Primary and subtype analysis in the Generations Study for PM2.5 and PM10 and breast cancer incidence. 
+## Primary and subtype analysis in the Generations Study for PM2.5 and PM10 and breast cancer incidence. 
 
 All hazard ratios calculated per 10 ug/m3 of exposure. For Primary Analysis, Model A adjusted for year of entry into the study; Model B adjusted for A + individual (BMI, smoking, alcohol, education) and small level socioeconomic status (Carstairs Index); Model C adjusted for B + reproductive risk factors (parity, age at first birth, HRT, and menopausal status updated throughout follow up)
 
@@ -776,7 +782,7 @@ subtype_clean %>%
 ```
 
 
-# Supplementary Table 4: Sensitivity analysis on the primary outcome in the Generations Study for PM2.5 and PM 10 and Breast Cancer Incidence. 
+## Sensitivity analysis on the primary outcome in the Generations Study for PM2.5 and PM 10 and Breast Cancer Incidence. 
 All hazard ratios calculated per 10 ug/m3 of exposure.
 
 
@@ -822,7 +828,6 @@ sensitivity_all_clean %>%
 ```
 
 
-# Extra
 
 
 ## E-Values
