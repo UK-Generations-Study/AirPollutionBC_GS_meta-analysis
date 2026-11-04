@@ -25,16 +25,11 @@ R version 4.4.1
 ### UK Generations Study Cohort Analysis
 Analysis for the Generations Study Analysis can be found here: [Generations Study Analysis](https://psychic-adventure-4q9wyj4.pages.github.io/GS_analysis.html)
 
-Folder structure: 
-
-Script: AirPollutionBC_GS_meta-analysis/tree/main/GS_analysis/Script
-
-Figures: AirPollutionBC_GS_meta-analysis/tree/main/GS_analysis/Figures
-
-This includes script for: 
+The above markdown includes script for: 
 - Table 1
 - Figure 1
 - Supplementary Figure 1
+
 
 ### Meta-Analysis
 Search date:
@@ -48,11 +43,15 @@ EMBASE
 Protocol registration:
 CRD420251075459
 
-Folder stricture: 
-XXXX
-
-This includes the script for: 
+Folder structure for meta-analysis: 
 XXX
+
+Folder structure by figure: 
+Figure 2: XXX
+Figure 3: XXX
+Table 3: XXX
+Supplementary table 5: XXX
+
 
 All manuscript figures can be recreated from source code using scripts in
 the analysis/ directory.
