@@ -4,8 +4,8 @@ author: "SW"
 format: 
   html:
     toc: true
-    toc-depth: 8
-    embed-resources: false
+    toc-depth: 3
+    embed-resources: true
     grid:
       sidebar-width: 300px
       body-width: 1500px
@@ -78,7 +78,7 @@ forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR
        xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
 ###Based on the created figure, Smotherman, 2023's study looks like an influential study.
 ###therefore, conduct the leave-one-out analysis to confirm
@@ -93,7 +93,7 @@ write.csv(loo_df,file = file.path(table_dir, "PM10InitialLOO.csv"))
 ###After excluding Smotherman, 2023's study, I2 changes from 86.69% to 35.99%, HR changes from 1.10 to 1.03
 ###So, for the main analysis, excluded this study (PM10-Main)
 
-knitr::include_graphics(file.path(figure_dir, "PM10All.svg"))
+knitr::include_graphics("Figures/PM10All.svg")
 knitr::kable(loo_df,caption = "Leave-one-out sensitivity analysis of intial all studies for PM10",digits = 2,row.names = TRUE)
 ```
 
@@ -134,9 +134,9 @@ forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR
        xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM10All + GS.svg"))
+knitr::include_graphics("Figures/PM10All + GS.svg")
 ```
 
 ## Supplementary table 5A. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM10 (including influential study)
@@ -151,7 +151,7 @@ loo_df$HR_95CI <- paste0(loo_df$HR,loo_df$CI)
 loo_df$I2_new <- paste0(round(loo_df$I2,2),"%")
 loo_df$P_value <- ifelse(loo_df$pval<0.001,"<0.001",loo_df$pval)
 loo_df$Heterogeneity_Pvalue <- ifelse(loo_df$Qp<0.001,"<0.001",loo_df$Qp)
-write.csv(loo_df,file = file.path(table_dir, "PM10InitialLOO.csv"))
+write.csv(loo_df,file = file.path(table_dir, "PM10Initial+GSLOO.csv"))
 ###After excluding Smotherman, 2023's study, I2 changes from 86.02% to 36.96%, HR changes from 1.10 to 1.04
 ###So, for the main analysis, excluded this study (PM10-Main + GS)
 
@@ -196,9 +196,9 @@ forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR
        xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM10Main + GS.svg"))
+knitr::include_graphics("Figures/PM10Main + GS.svg")
 ```
 
 ## Supplementary table 5B. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM10 (without influential study)
@@ -232,9 +232,9 @@ svglite(file = file.path(figure_dir, "PM10Funnelplot.svg"),width = 6,height = 9)
 funnel(PM10_res,atransf = exp, at = log(c(0.5, 1, 1.5, 2)),ylim = c(0,0.35),yaxt = "n",xlab = "Hazard Ratio", ylab = "Standard Error")
 axis(2, at = seq(0, 0.35, by = 0.05), las = 1)
 text(x = log(0.45), y = 0.35, pos = 4,labels = paste0("Egger's test: z = ", round(egger_test$zval, 2),", p = ", signif(egger_test$pval, 3)),cex = 0.9)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM10Funnelplot.svg"))
+knitr::include_graphics("Figures/PM10Funnelplot.svg")
 ```
 
 # Part II. Overall meta-analysis for PM2.5
@@ -275,7 +275,7 @@ forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","H
        xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
 ###Based on the created figure, Kayyal-Tarabeia, 2024's study looks like an influential study.
 ###therefore, conduct the leave-one-out analysis to confirm
@@ -290,7 +290,7 @@ write.csv(loo_df,file = file.path(table_dir, "PM2.5InitialLOO.csv"))
 ###After excluding Kayyal-Tarabeia, 2024's study, I2 changes from 91.93% to 78.93%, HR changes from 1.14 to 1.08
 ###So, for the main analysis, excluded this study (PM2.5-Main)
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5All.svg"))
+knitr::include_graphics("Figures/PM2.5All.svg")
 knitr::kable(loo_df,caption = "Leave-one-out sensitivity analysis of intial all studies for PM2.5",digits = 2,row.names = TRUE)
 ```
 
@@ -331,9 +331,9 @@ forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","H
        xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5All + GS.svg"))
+knitr::include_graphics("Figures/PM2.5All + GS.svg")
 ```
 
 ## Supplementary table 5C. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM2.5 (including influential study)
@@ -393,9 +393,9 @@ forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","H
        xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5Main + GS.svg"))
+knitr::include_graphics("Figures/PM2.5Main + GS.svg")
 ```
 
 ## Supplementary table 5D. Meta-analysis influential study sensitivity analysis using the leave-one-out method for PM2.5 (without influential study)
@@ -428,9 +428,9 @@ svglite(file = file.path(figure_dir, "PM2.5Funnelplot.svg"),width = 6,height = 9
 funnel(PM2.5_res,atransf = exp, at = log(c(0.5, 1, 1.5, 2)),ylim = c(0,0.35),yaxt = "n",xlab = "Hazard Ratio", ylab = "Standard Error")
 axis(2, at = seq(0, 0.35, by = 0.05), las = 1)
 text(x = log(0.45), y = 0.35, pos = 4,labels = paste0("Egger's test: z = ", round(egger_test$zval, 2),", p = ", signif(egger_test$pval, 3)),cex = 0.9)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5Funnelplot.svg"))
+knitr::include_graphics("Figures/PM2.5Funnelplot.svg")
 ```
 
 
@@ -495,9 +495,9 @@ text(x = -2.4, y = -1, pos = 4,labels = paste0("Test for subgroup differences: "
 
 addpoly(res.pre, row = Numpost+6, mlab = "Random effect model for premenopausal", col = "skyblue", border = "skyblue")
 addpoly(res.post, row = 2, mlab = "Random effect model for postmenopausal", col = "skyblue", border = "skyblue")
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM10Menopausal + GS.svg"))
+knitr::include_graphics("Figures/PM10Menopausal + GS.svg")
 ```
 
 ## Figure 3B. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10 in relation to breast cancer incidence by hormone receptor status
@@ -559,9 +559,9 @@ text(x = -2, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", 
 
 addpoly(res.pos, row = Numneg+6, mlab = "Random effect model for ER+/PR+", col = "skyblue", border = "skyblue")
 addpoly(res.neg, row = 2, mlab = "Random effect model for ER-/PR-", col = "skyblue", border = "skyblue")
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM10Subtype + GS.svg"))
+knitr::include_graphics("Figures/PM10Subtype + GS.svg")
 ```
 
 
@@ -624,9 +624,9 @@ text(x = -3, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", 
 
 addpoly(res.na, row = 2, mlab = "Random effect model for North America", col = "skyblue", border = "skyblue")
 addpoly(res.eu, row = Numna+6, mlab = "Random effect model for Europe", col = "skyblue", border = "skyblue")
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM10Study_location + GS.svg"))
+knitr::include_graphics("Figures/PM10Study_location + GS.svg")
 ```
 
 
@@ -690,9 +690,9 @@ text(x = -2.4, y = -1, pos = 4,labels = paste0("Test for subgroup differences: "
 
 addpoly(res.ch, row = Numcc+6, mlab = "Random effect model for cohort studies", col = "skyblue", border = "skyblue")
 addpoly(res.cc, row = 2, mlab = "Random effect model for case-control studies", col = "skyblue", border = "skyblue")
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM10Study_design + GS.svg"))
+knitr::include_graphics("Figures/PM10Study_design + GS.svg")
 ```
 
 
@@ -756,9 +756,9 @@ text(x = -2, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", 
 
 addpoly(res.pre, row = Numpost+6, mlab = "Random effect model for premenopausal", col = "skyblue", border = "skyblue")
 addpoly(res.post, row = 2, mlab = "Random effect model for postmenopausal", col = "skyblue", border = "skyblue")
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5Menopausal + GS.svg"))
+knitr::include_graphics("Figures/PM2.5Menopausal + GS.svg")
 ```
 
 
@@ -821,9 +821,9 @@ text(x = -2, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", 
 
 addpoly(res.pos, row = Numneg+6, mlab = "Random effect model for ER+/PR+", col = "skyblue", border = "skyblue")
 addpoly(res.neg, row = 2, mlab = "Random effect model for ER-/PR-", col = "skyblue", border = "skyblue")
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5Subtype + GS.svg"))
+knitr::include_graphics("Figures/PM2.5Subtype + GS.svg")
 ```
 
 
@@ -891,9 +891,9 @@ text(x = -2, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", 
 addpoly(res.na, row = 2, mlab = "Random effect model for North America", col = "skyblue", border = "skyblue")
 addpoly(res.eu, row = Numna+6, mlab = "Random effect model for Europe", col = "skyblue", border = "skyblue")
 addpoly(res.as, row = Numna+Numeu+10, mlab = "Random effect model for Asia", col = "skyblue", border = "skyblue")
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5Study_location + GS.svg"))
+knitr::include_graphics("Figures/PM2.5Study_location + GS.svg")
 ```
 
 
@@ -965,9 +965,9 @@ text(x = -2, y = -1, pos = 4,labels = paste0("Test for subgroup differences: ", 
 
 addpoly(res.ch, row = Numcc+6, mlab = "Random effect model for cohort studies", col = "skyblue", border = "skyblue")
 addpoly(res.cc, row = 2, mlab = "Random effect model for case-control studies", col = "skyblue", border = "skyblue")
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5Study_design + GS.svg"))
+knitr::include_graphics("Figures/PM2.5Study_design + GS.svg")
 ```
 
 # Part V. Population attributable fraction for PM2.5
@@ -1061,9 +1061,9 @@ forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR
        xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM10Allsensitivity.svg"))
+knitr::include_graphics("Figures/PM10Allsensitivity.svg")
 ```
 
 
@@ -1098,15 +1098,15 @@ format_p <- function(p) {
   }
 }
 
-svglite(file = file.path(figure_dir, "PM10-Prospective + GS.svg"),width = 6,height = 9)
+svglite(file = file.path(figure_dir, "PM10Prospective + GS.svg"),width = 6,height = 9)
 forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
        xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
        xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM10-Prospective + GS.svg"))
+knitr::include_graphics("Figures/PM10Prospective + GS.svg")
 ```
 
 ## Table 3 Meta-analysis of particulate matter (PM10) exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of major confounding
@@ -1140,15 +1140,15 @@ format_p <- function(p) {
   }
 }
 
-svglite(file = file.path(figure_dir, "PM10-SES + GS.svg"),width = 6,height = 9)
+svglite(file = file.path(figure_dir, "PM10SES + GS.svg"),width = 6,height = 9)
 forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
        xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
        xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM10-SES + GS.svg"))
+knitr::include_graphics("Figures/PM10SES + GS.svg")
 ```
 
 
@@ -1183,15 +1183,15 @@ format_p <- function(p) {
   }
 }
 
-svglite(file = file.path(figure_dir, "PM10-Exposure + GS.svg"),width = 6,height = 9)
+svglite(file = file.path(figure_dir, "PM10Exposure + GS.svg"),width = 6,height = 9)
 forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
        xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
        xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM10-Exposure + GS.svg"))
+knitr::include_graphics("Figures/PM10Exposure + GS.svg")
 ```
 
 
@@ -1233,9 +1233,9 @@ forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","H
        xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5Allsensitivity.svg"))
+knitr::include_graphics("Figures/PM2.5Allsensitivity.svg")
 ```
 
 
@@ -1270,15 +1270,15 @@ format_p <- function(p) {
   }
 }
 
-svglite(file = file.path(figure_dir, "PM2.5-Prospective + GS.svg"),width = 6,height = 9)
+svglite(file = file.path(figure_dir, "PM2.5Prospective + GS.svg"),width = 6,height = 9)
 forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
        xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
        xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5-Prospective + GS.svg"))
+knitr::include_graphics("Figures/PM2.5Prospective + GS.svg")
 ```
 
 
@@ -1313,15 +1313,15 @@ format_p <- function(p) {
   }
 }
 
-svglite(file = file.path(figure_dir, "PM2.5-SES + GS.svg"),width = 6,height = 9)
+svglite(file = file.path(figure_dir, "PM2.5SES + GS.svg"),width = 6,height = 9)
 forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
        xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
        xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5-SES + GS.svg"))
+knitr::include_graphics("Figures/PM2.5SES + GS.svg")
 ```
 
 
@@ -1356,13 +1356,13 @@ format_p <- function(p) {
   }
 }
 
-svglite(file = file.path(figure_dir, "PM2.5-Exposure + GS.svg"),width = 6,height = 9)
+svglite(file = file.path(figure_dir, "PM2.5Exposure + GS.svg"),width = 6,height = 9)
 forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
        xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
        xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
        cex = 0.8, efac = 0.5)
 text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
-dev.off()
+invisible(dev.off())
 
-knitr::include_graphics(file.path(figure_dir, "PM2.5-Exposure + GS.svg"))
+knitr::include_graphics("Figures/PM2.5Exposure + GS.svg")
 ```
