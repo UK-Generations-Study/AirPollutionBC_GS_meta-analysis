@@ -70,6 +70,11 @@ the analysis/ directory.
 
 Vector graphics were exported as SVG files for publication.
 
+## Citation
+If you would like to cite this work, please use:
+Richards Z, Wang S, Berrington de Gonzalez A, et al. AirPollutionBC_GS_meta-analysis (2026)
+DOI: 10.5281/zenodo.24005669
+
 ## License
 
 This project is licensed under the MIT License. See the LICENSE file for details.
