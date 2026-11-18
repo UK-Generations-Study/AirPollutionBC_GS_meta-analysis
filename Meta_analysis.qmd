@@ -434,7 +434,6 @@ knitr::include_graphics("Figures/PM2.5Funnelplot.svg")
 ```
 
 
-
 # Part III. Subgroup analysis for PM10
 ## Figure 3A. Meta-analysis of hazard ratios (HR) and 95% confidence intervals (95% CI) per 10 ug/m3 increase in PM10 in relation to breast cancer incidence by menopausal status
 ```{r}
@@ -1067,6 +1066,59 @@ knitr::include_graphics("Figures/PM10Allsensitivity.svg")
 ```
 
 
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- All studies included (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Main + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe")
+
+PM10_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM10_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM10_res)[1])),
+      exp(PM10_res$ci.lb),
+      exp(PM10_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM10_res$I2)
+  )
+}))
+
+knitr::kable(PM10_location_results, caption = "PM10 all sensitivity by study location")
+```
+
+
 ## Table 3 Meta-analysis of particulate matter (PM10) exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of selection bias
 ```{r}
 #| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of selection bias
@@ -1108,6 +1160,60 @@ invisible(dev.off())
 
 knitr::include_graphics("Figures/PM10Prospective + GS.svg")
 ```
+
+
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of selcetion bias (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Prospective + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe")
+
+PM10_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM10_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM10_res)[1])),
+      exp(PM10_res$ci.lb),
+      exp(PM10_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM10_res$I2)
+  )
+}))
+
+knitr::kable(PM10_location_results, caption = "PM10 low risk of selection bias by study location")
+```
+
 
 ## Table 3 Meta-analysis of particulate matter (PM10) exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of major confounding
 ```{r}
@@ -1152,6 +1258,59 @@ knitr::include_graphics("Figures/PM10SES + GS.svg")
 ```
 
 
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of major confounding (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-SES + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe")
+
+PM10_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM10_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM10_res)[1])),
+      exp(PM10_res$ci.lb),
+      exp(PM10_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM10_res$I2)
+  )
+}))
+
+knitr::kable(PM10_location_results, caption = "PM10 low risk of major confounding by study location")
+```
+
+
 ## Table 3 Meta-analysis of particulate matter (PM10) exposure and breast cancer incidence for main and bias sensitivity analyses -- No major sources of exposure measurement error
 ```{r}
 #| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- No major sources of exposure measurement error
@@ -1192,6 +1351,251 @@ text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
 invisible(dev.off())
 
 knitr::include_graphics("Figures/PM10Exposure + GS.svg")
+```
+
+
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- No major sources of exposure measurement error (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Exposure + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe")
+
+PM10_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM10_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM10_res)[1])),
+      exp(PM10_res$ci.lb),
+      exp(PM10_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM10_res$I2)
+  )
+}))
+
+knitr::kable(PM10_location_results, caption = "PM10 no major sources of exposure measurement error by study location")
+```
+
+
+## Table 3 Meta-analysis of particulate matter (PM10) exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of confounding + No major sources of exposure measurement error
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of confounding + No major sources of exposure measurement error
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-SES + Exposure + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM10_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM10_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM10_res <- PM10_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10SES+Exposure + GS.svg"),width = 6,height = 9)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+invisible(dev.off())
+
+knitr::include_graphics("Figures/PM10SES+Exposure + GS.svg")
+```
+
+
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of confounding + No major sources of exposure measurement error (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-SES + Exposure + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe")
+
+PM10_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM10_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM10_res)[1])),
+      exp(PM10_res$ci.lb),
+      exp(PM10_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM10_res$I2)
+  )
+}))
+
+knitr::kable(PM10_location_results, caption = "PM10 low risk of confounding + no major sources of exposure measurement error by study location")
+```
+
+
+## Table 3 Meta-analysis of particulate matter (PM10) exposure and breast cancer incidence for main and bias sensitivity analyses -- Subset of minimal bias
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- Subset of minimal bias
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Minimal + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM10_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM10_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM10_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM10_res <- PM10_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM10Minimal + GS.svg"),width = 6,height = 9)
+forest(PM10_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM10_res$I2, 2),"%, ",format_p(PM10_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM10_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM10_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+invisible(dev.off())
+
+knitr::include_graphics("Figures/PM10Minimal + GS.svg")
+```
+
+
+```{r}
+#| label: Meta-analysis of particulate matter PM10 exposure and breast cancer incidence for main and bias sensitivity analyses -- Subset of minimal bias (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM10-Minimal + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe")
+
+PM10_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM10_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM10_res)[1])),
+      exp(PM10_res$ci.lb),
+      exp(PM10_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM10_res$I2)
+  )
+}))
+
+knitr::kable(PM10_location_results, caption = "PM10 subset of minimal bias by study location")
 ```
 
 
@@ -1239,6 +1643,59 @@ knitr::include_graphics("Figures/PM2.5Allsensitivity.svg")
 ```
 
 
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- All studies included (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Main + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe", "Asia")
+
+PM2.5_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM2.5_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM2.5_res)[1])),
+      exp(PM2.5_res$ci.lb),
+      exp(PM2.5_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM2.5_res$I2)
+  )
+}))
+
+knitr::kable(PM2.5_location_results, caption = "PM2.5 all sensitivity by study location")
+```
+
+
 ## Table 3 Meta-analysis of particulate matter (PM2.5) exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of selection bias
 ```{r}
 #| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of selection bias
@@ -1279,6 +1736,59 @@ text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
 invisible(dev.off())
 
 knitr::include_graphics("Figures/PM2.5Prospective + GS.svg")
+```
+
+
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of selection bias (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Prospective + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe", "Asia")
+
+PM2.5_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM2.5_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM2.5_res)[1])),
+      exp(PM2.5_res$ci.lb),
+      exp(PM2.5_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM2.5_res$I2)
+  )
+}))
+
+knitr::kable(PM2.5_location_results, caption = "PM2.5 low risk of selection bias by study location")
 ```
 
 
@@ -1325,6 +1835,59 @@ knitr::include_graphics("Figures/PM2.5SES + GS.svg")
 ```
 
 
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of major confounding (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-SES + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe", "Asia")
+
+PM2.5_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM2.5_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM2.5_res)[1])),
+      exp(PM2.5_res$ci.lb),
+      exp(PM2.5_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM2.5_res$I2)
+  )
+}))
+
+knitr::kable(PM2.5_location_results, caption = "PM2.5 low risk of major confounding by study location")
+```
+
+
 ## Table 3 Meta-analysis of particulate matter (PM2.5) exposure and breast cancer incidence for main and bias sensitivity analyses -- No major sources of exposure measurement error
 ```{r}
 #| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- No major sources of exposure measurement error
@@ -1365,4 +1928,249 @@ text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
 invisible(dev.off())
 
 knitr::include_graphics("Figures/PM2.5Exposure + GS.svg")
+```
+
+
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- No major sources of exposure measurement error (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Exposure + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe", "Asia")
+
+PM2.5_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM2.5_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM2.5_res)[1])),
+      exp(PM2.5_res$ci.lb),
+      exp(PM2.5_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM2.5_res$I2)
+  )
+}))
+
+knitr::kable(PM2.5_location_results, caption = "PM2.5 no major sources of exposure measurement error by study location")
+```
+
+
+## Table 3 Meta-analysis of particulate matter (PM2.5) exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of confounding + No major sources of exposure measurement error
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of confounding + No major sources of exposure measurement error
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-SES + Exposure + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM2.5_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM2.5_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM2.5_res <- PM2.5_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5SES+Exposure + GS.svg"),width = 6,height = 9)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+invisible(dev.off())
+
+knitr::include_graphics("Figures/PM2.5SES+Exposure + GS.svg")
+```
+
+
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- Low risk of confounding + No major sources of exposure measurement error (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-SES + Exposure + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe", "Asia")
+
+PM2.5_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM2.5_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM2.5_res)[1])),
+      exp(PM2.5_res$ci.lb),
+      exp(PM2.5_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM2.5_res$I2)
+  )
+}))
+
+knitr::kable(PM2.5_location_results, caption = "PM2.5 low risk of confounding + no major sources of exposure measurement error by study location")
+```
+
+
+## Table 3 Meta-analysis of particulate matter (PM2.5) exposure and breast cancer incidence for main and bias sensitivity analyses -- Subset of minimal bias
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- Subset of minimal bias
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Minimal + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+PM2.5_res <- rma(yi = logHR_10,sei = SE_10,data = data,method = "DL",slab = data$Study)
+data$weights <- weights(PM2.5_res)  #Extract weights
+data_sorted <- data[order(-data$weights),]  #Sort data by descending weight
+PM2.5_res_sorted <- rma(yi = logHR_10, sei = SE_10, data = data_sorted, method = "DL", slab = data_sorted$Study)  #Re-run meta-analysis with sorted data
+PM2.5_res <- PM2.5_res_sorted
+
+format_p <- function(p) {
+  if (p < 0.001) {
+    return("p < 0.001")
+  } else {
+    return(paste0("p = ", format(round(p, 3), nsmall = 3)))
+  }
+}
+
+svglite(file = file.path(figure_dir, "PM2.5Minimal + GS.svg"),width = 6,height = 9)
+forest(PM2.5_res, at = log(c(0.5,1,1.5,2)), atransf = exp, header = c("Study","HR [95%CI]"), showweights = TRUE,
+       xlab = "Hazard Ratio", mlab = paste0("Random effect model\nHeterogeneity: I² = ", round(PM2.5_res$I2, 2),"%, ",format_p(PM2.5_res$QEp)),
+       xlim = c(-2.45,2),ylim = c(-3,length(PM2.5_res$yi)+3),lwd = 1.5, col = "maroon",border = "maroon",pch = 16, width = 2 ,shade = TRUE, colshade = "#EBEBEB",
+       cex = 0.8, efac = 0.5)
+text(x = 0.9,y = length(PM2.5_res$yi) + 2,labels = "Weight",font = 2, cex = 0.8)
+invisible(dev.off())
+
+knitr::include_graphics("Figures/PM2.5Minimal + GS.svg")
+```
+
+
+```{r}
+#| label: Meta-analysis of particulate matter PM2.5 exposure and breast cancer incidence for main and bias sensitivity analyses -- Subset of minimal bias (by STUDY LOCATION)
+#| out-width: "90%"
+#| echo: false
+
+data <- read_excel(input_file, sheet = "PM2.5-Minimal + GS")
+
+###Standardise the effect estimates (per 10 µg/m3 increase)
+data$logHR <- log(data$Effect)
+data$SE <- (log(data$Upper_CI) - log(data$Lower_CI)) / (2 * 1.96)
+data$logHR_10 <- data$logHR * (10 / data$Unit_increase)
+data$SE_10 <- data$SE * (10 / data$Unit_increase)
+data$HR_10 <- exp(data$logHR_10)
+data$LowerCI_10 <- exp(data$logHR_10 - 1.96 * data$SE_10)
+data$UpperCI_10 <- exp(data$logHR_10 + 1.96 * data$SE_10)
+
+###Meta-analysis by study location
+locations <- c("North America", "Europe")
+
+PM2.5_location_results <- do.call(rbind, lapply(locations, function(loc) {
+
+  data_sub <- subset(data, Study_location == loc) #Select studies from each location
+  n_studies <- nrow(data_sub)
+
+  if (n_studies < 2) {
+    return(data.frame(
+      Study_location = loc,
+      N = n_studies,
+      HR_95CI = "X",
+      I2 = "X"
+    ))
+  }    #If fewer than 2 studies, return X
+
+  PM2.5_res <- rma(yi = logHR_10, sei = SE_10, data = data_sub, method = "DL", slab = data_sub$Study)
+
+  #Extract meta-analysis results
+  data.frame(
+    Study_location = loc,
+    N = n_studies,
+    HR_95CI = sprintf(
+      "%.2f (%.2f, %.2f)",
+      exp(as.numeric(coef(PM2.5_res)[1])),
+      exp(PM2.5_res$ci.lb),
+      exp(PM2.5_res$ci.ub)
+    ),
+    I2 = sprintf("%.2f%%", PM2.5_res$I2)
+  )
+}))
+
+knitr::kable(PM2.5_location_results, caption = "PM2.5 subset of minimal bias by study location")
 ```
